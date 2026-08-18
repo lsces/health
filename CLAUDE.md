@@ -1,12 +1,17 @@
 # Health Package — Developer Notes
 
-## Status (2026-08-18): not scaffolded — architecture sketch only
+## Status (2026-08-18): skeleton scaffolded, ready to start filling
 
-No package skeleton exists yet (no git repo, no `bit_setup_inc.php`, no symlink into any site) —
-this session only surveyed the source data and wrote `MANUAL.md`'s architecture proposal. Actual
-scaffolding (own git repo pushed to `github.com/lsces/health`, symlink into rdmcloud, empty
-`admin/schema_inc.php`) is the next step whenever building actually starts, following `food/`'s
-own precedent exactly.
+`~/Development/bitweaver/health/`, own git repo pushed to `github.com/lsces/health` (private,
+matches food/liberty/stock convention). Registered (`includes/bit_setup_inc.php`, empty
+`admin/schema_inc.php`), symlinked into the **rdmcloud** site
+(`/srv/website/rdmcloud/health -> ../_bw5/health`, same pattern as every other package there) —
+not yet installed via the packages admin page, no content classes/schema/pages exist yet. Built by
+directly copying food's own initial-skeleton commit (`food` repo, commit `ac17ee0`) and adapting
+FOOD→HEALTH — same shape: `bit_setup_inc.php`, `admin/schema_inc.php` (empty `$tables`),
+`index.php` placeholder, `templates/menu_health.tpl`. Top-level
+`~/Development/bitweaver/.gitignore` updated with `/health/` (nested repo, nothing to track at
+the wrapper level, same as `/food/`/`/stock/`/`/liberty/`).
 
 Companion package: `food/CLAUDE.md`. Same Samsung Health export, same liberty_xref-based approach
 — read Food's notes for the established pattern (Component/Assembly/Movement split, per-package
