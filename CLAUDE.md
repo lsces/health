@@ -78,3 +78,16 @@ Four decisions/findings out of Lester reacting to the sketch above, all folded i
   `liberty_xref_item` rather than waiting for a third package to need it, since a package-local
   workaround would mean duplicating that dispatch code. Not designed, needs a direct decision with
   Lester before building — see `MANUAL.md`'s dedicated section.
+
+## 2026-08-18 (post-walk) — Day-as-base-object floated, planning stage only
+
+Lester's own framing: "the liberty object base in health has to be a day and everything hangs off
+that via xref?" — a real alternative to the `HealthMetric`/`HealthSession` content-model sketch,
+captured in `MANUAL.md`'s "Proposed content model" section rather than resolved here. Two open
+questions before it's actionable: whether this genuinely diverges from Food's "day is a report,
+not a record" precedent for a good reason (Health's metrics being naturally one-per-day already,
+unlike Food's several-real-meals-per-day) or whether that divergence needs more thought first; and
+how it interacts with the already-settled "don't decompose `jsons/` shape-2 data into individual
+xref rows" scale constraint — read as one xref row per metric-*type* per day, not one per raw
+reading, but not confirmed. Explicitly not scoped or built — "just another nail for the planning
+stage," Lester's own words.

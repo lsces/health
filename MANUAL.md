@@ -115,6 +115,28 @@ Stock's append-only movement ledger than to Food's Component/Assembly pair:
   session's summary lives as ordinary scalar xref items regardless, the raw time-series detail is
   optional/deferred.
 
+**Alternative floated 2026-08-18, planning-stage only, not decided**: rather than
+`HealthMetric`/`HealthSession` as the base `liberty_content` objects, make **a calendar Day itself
+the base object**, with weight/blood-pressure/sleep-summary/exercise-reference/step-count etc. all
+hanging off that one Day's content_id as ordinary xref rows (one row per metric-per-day) — mirrors
+how Food's `view_day.php` report already groups things by day, except here Day would be a *real*
+content object rather than a query grouping over separate `FoodAssembly` records. Not yet reconciled
+with two things worth checking before committing to this shape:
+- **Food's own precedent went the other way** — "day is a report, not a record" was an explicit,
+  deliberate decision for `FoodAssembly` (see `project_food_package_scoping` memory), because a
+  day's contents there are genuinely separate real-world events (five possible meals, each its own
+  moment). Health's metrics are more naturally "one value per day" already (a single weight
+  reading, a single night's sleep score), which might make Day-as-record a better fit *here* even
+  though it wasn't for Food — a real architectural difference, not just inconsistency, but worth
+  being explicit about why the two packages would diverge.
+- **Scale interaction with the `jsons/` shape-2 tier** (this file's own shape taxonomy above) —
+  "everything hangs off Day via xref" can't mean literally every raw sensor reading becomes its own
+  `liberty_xref` row (that's the exact tens-of-millions-of-rows problem already ruled out for
+  `movement`/`tracker.heart_rate`/etc.). Read as: one xref row per *metric type* per day (weight,
+  sleep summary, a session *reference*), with the heavy time-series detail still living as a single
+  blob attached via the `series`/`-1` read-only item plan, not decomposed. Worth confirming that's
+  the intended reading before scaffolding around it.
+
 ## v1 scope — cherry-picked CSV tier, `jsons/` tier explicitly deferred
 
 **Cherry-picked by actual use, not by richness (revised 2026-08-18)** — the earlier framing
