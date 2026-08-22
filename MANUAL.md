@@ -115,6 +115,20 @@ Stock's append-only movement ledger than to Food's Component/Assembly pair:
   session's summary lives as ordinary scalar xref items regardless, the raw time-series detail is
   optional/deferred.
 
+  **Start/end time storage — settled 2026-08-22**: the session's own summary xref row uses
+  `liberty_xref.start_date`/`end_date` directly for the real session start/end instants (not a
+  scalar field). Every imported session already happened, so every row lands in that content
+  record's own synthetic "History" tab by default (`end_date IS NOT NULL` sweep, see
+  `liberty/MANUAL.md`'s Expunge and history section) — fine here specifically because health data
+  is never edited via the UI, so the History tab's Edit→Restore icon swap never applies. Don't
+  assume this same choice is safe for an *editable* xref item elsewhere without re-checking.
+
+  **Import wrinkle, not yet built**: Samsung's CSV rows carry one `time_offset` per row for
+  *both* `start_time` and `end_time` — wrong for a session spanning a BST↔GMT transition (each
+  end needs its own offset). Confirmed against a real transition-night sleep record, not assumed.
+  Resolve each timestamp against the `Europe/London` IANA zone directly instead of trusting the
+  row's single offset for both ends — see `CLAUDE.md`'s 2026-08-22 entry for the verified example.
+
 **Alternative floated 2026-08-18, planning-stage only, not decided**: rather than
 `HealthMetric`/`HealthSession` as the base `liberty_content` objects, make **a calendar Day itself
 the base object**, with weight/blood-pressure/sleep-summary/exercise-reference/step-count etc. all

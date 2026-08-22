@@ -91,3 +91,34 @@ how it interacts with the already-settled "don't decompose `jsons/` shape-2 data
 xref rows" scale constraint — read as one xref row per metric-*type* per day, not one per raw
 reading, but not confirmed. Explicitly not scoped or built — "just another nail for the planning
 stage," Lester's own words.
+
+## 2026-08-22 — session start/end time storage settled; real DST wrinkle found
+
+**Decided: `HealthSession`'s own summary xref row uses `liberty_xref.start_date`/`end_date`
+directly for the real session start/end instants** — not a `series`/scalar field. Checked the
+actual liberty dispatch code before deciding rather than assuming: `end_date IS NOT NULL` only
+routes a row into that content record's own synthetic "History" tab
+(`LibertyXrefType.php:269`'s `end_date < now() THEN 'history'` sweep) — it doesn't affect
+discoverability anywhere else (package-level list/report pages query `liberty_content` directly,
+untouched by this). The one real cost — the "History" tab's action icons swap Edit for Restore
+(`!$isHistory` gates Edit in `action_icons.tpl`) — doesn't apply here at all: health data is
+never edited via the UI, it's device-sourced and read-only by design. So every session landing in
+its own History tab by default (since every imported session already happened) is fine, not a
+bug to route around. See `liberty/MANUAL.md`'s Expunge and history section for the mechanism.
+
+**Real, verified gap found along the way, relevant to any session-shaped import (sleep,
+exercise)**: Samsung's CSV rows carry exactly one `time_offset` column per row, applied to *both*
+`start_time` and `end_time` — but a session spanning a BST↔GMT transition needs two different
+offsets, one per end. Confirmed against real data, not assumed: a real sleep record spanning
+2025-10-25→26 (the night BST ended) has `start_time: 2025-10-25 22:47` (should be BST, `+0100`)
+and `end_time: 2025-10-26 06:30` (should be GMT, `+0000`), but the row's own `time_offset` is a
+single `UTC+0000` — applying it to `start_time` would put that end an hour out. Food's proven
+`foodParseSamsungTime()` pattern (build an explicit `DateTimeZone` from the row's own offset, no
+ambient-timezone dependency at all) generalises cleanly to every instant-only health metric, but
+session start/end pairs need a different approach: resolve each timestamp against the
+`Europe/London` IANA zone directly (which knows the real historical transition instant) rather
+than trusting the row's single offset for both ends. Not yet built — noted here so the eventual
+sleep/exercise importer doesn't rediscover this the hard way.
+
+**Still not done**: the v1 CSV-type cherry-pick pass (see the 2026-08-18 entry above) — floated
+as the next concrete step, not yet started.
