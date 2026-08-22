@@ -26,8 +26,7 @@ if( $gBitSystem->isPackageActive( 'health' ) ) {
 	];
 	$gBitSystem->registerAppMenu( $menuHash );
 
-	// content-type registration (HealthMetric/HealthSession — see this package's own
-	// MANUAL.md for the architecture sketch) and any service/hook registration (see
-	// stock/includes/bit_setup_inc.php for the pattern) belongs here once those
-	// classes exist — nothing to register yet.
+	// content-type registration lives in admin/schema_inc.php (registerContentObjects),
+	// not here — HealthDay is registered there. Service/hook registration (see
+	// stock/includes/bit_setup_inc.php for the pattern) would go here if/when needed.
 }

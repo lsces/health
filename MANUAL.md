@@ -99,57 +99,75 @@ Two JSON xref shapes, not one:
 Shape-3 (nested/irregular) and shape-4 (PDF) aren't good candidates for either template — flagged
 as open questions, not designed here.
 
-## Proposed content model
+## Content model — settled 2026-08-22
 
-Following Food's Component/Assembly/Movement split loosely, but Health's data is device-generated
-fact rather than something the user composes (no analogue to a recipe/BOM) — closer in spirit to
-Stock's append-only movement ledger than to Food's Component/Assembly pair:
+**Day-as-base-object, not `HealthMetric`/`HealthSession`** — superseded the split floated
+2026-08-18 (see `CLAUDE.md`'s session log for the full back-and-forth). `HealthDay`
+(`includes/classes/HealthDay.php`, `content_type_guid='healthday'`) is a pure `liberty_content`
+record, content_id only, no companion table — same "no ID-alias table" reasoning as Food/Stock's
+own content types. Title is always the ISO date (`YYYY-MM-DD`); `HealthDay::findOrCreate($date)`
+is the normal way an importer gets a content_id to attach xref rows to, since a date is all it
+ever knows ahead of time — `lookupByDate()`/`lookup()` (by content_id) also exist but aren't the
+usual entry point.
 
-- **HealthMetric** — a single point-in-time scalar reading: weight, blood pressure
-  (systolic/diastolic), resting heart rate, HRV daily rollup, sleep score, daily step count.
-  Maps directly onto scalar `liberty_xref` items, same shape as Food's per-100g nutrition scalars.
-  Sourced entirely from the CSV tier — no `jsons/` involvement needed for v1.
-- **HealthSession** — a bounded time-span event with its own start/end time and summary scalars
-  (an exercise session: duration/calories/avg HR; a sleep session: stages/duration). This is
-  where a shape-2 detail blob would eventually attach, once the `series` template exists — the
-  session's summary lives as ordinary scalar xref items regardless, the raw time-series detail is
-  optional/deferred.
+Reconciled the two open questions that had blocked this decision:
+- **Diverges from Food's "day is a report, not a record" on purpose, not by accident** — Food's
+  days hold several genuinely separate real-world events (meals), Health's metrics are naturally
+  one-or-a-few-per-day already, making Day-as-record the better fit here even though it wasn't for
+  Food.
+- **Scale question resolved per metric, not with one blanket rule**: medium-cardinality CSV-tier
+  data (a handful of readings/day at most — weight, BP, pulse-oximeter, temperature) gets one
+  `liberty_xref` row *per reading*, `multiple=1`, nothing pre-reduced at import time. The
+  high-frequency `jsons/` shape-2 tier (thousands of raw sensor points/day) is a different order of
+  magnitude and still isn't decomposed to one row per reading — `PULSE`'s half-hour-slot bucketing
+  (below) is the compromise: coarser than raw-per-minute, finer than a single daily figure.
 
-  **Start/end time storage — settled 2026-08-22**: the session's own summary xref row uses
-  `liberty_xref.start_date`/`end_date` directly for the real session start/end instants (not a
-  scalar field). Every imported session already happened, so every row lands in that content
-  record's own synthetic "History" tab by default (`end_date IS NOT NULL` sweep, see
-  `liberty/MANUAL.md`'s Expunge and history section) — fine here specifically because health data
-  is never edited via the UI, so the History tab's Edit→Restore icon swap never applies. Don't
-  assume this same choice is safe for an *editable* xref item elsewhere without re-checking.
+**Items designed so far, all `multiple=1`, read-only (`-1`), day-summary values computed at query
+time rather than stored** (full reasoning per item, plus the Samsung-vs-HealthForYou source
+investigation behind them, is in `project_health_package_scoping` memory — this is the settled
+shape, not the reasoning trail):
+- **`WT`** — weight+BMI+body-composition. `xkey`=weight (kg), `xkey_ext`=BMI (cached, not source
+  of truth — a future height change would need a recalc pass). `data`=json body-comp
+  (`body_fat_pct`/`water_pct`/`muscle_pct`/`bone_mass_kg`), `json-list` template with a registered
+  hint array, same convention as Food's `FAT`/`VIT`/`MIN`. Sourced from HealthForYou's Weight
+  section, every reading imported (not just an AM-only reduction) — day-summary "lowest AM
+  weight, preferring a reading with a successful body-comp scan" is a query-time filter, not an
+  ETL step.
+- **`PULSE`** — one row per half-hour clock slot (00:00–00:30, …, max 48/day), built by
+  re-bucketing the watch's variable-length recording sessions against fixed clock-aligned windows.
+  `xkey`=slot average, `xkey_ext`=low/high json, `data`=that slot's own minute-level bins as json.
+  Daily low/high/average are a query-time rollup over the day's slots. A missing slot isn't
+  automatically meaningful — the watch charges off-wrist 1hr+/day, and no battery/wear-status data
+  exists anywhere to distinguish that from a genuine erratic-rhythm dropout.
+- **`OXI`** — finger-probe pulse-oximeter reading, `value` template (same shape as `BP`):
+  `xkey`=SpO2 average, `xkey_ext`=Pulse, `data`=json `{spo2_min, spo2_max}`. Deliberately separate
+  from `PULSE` rather than folded into its rollup — different device, different cadence, and
+  "correcting" a live daily-low computation from an external reading doesn't fit the model.
+- **`BP`** — `value` template: `xkey`=systolic, `xkey_ext`=diastolic, `data`=json
+  `{pulse, map, source, comment}`, `source` derived from Samsung's `pkg_name` (cuff vs watch-PPG) /
+  HealthForYou (cuff only). Every raw reading imported, no daily reduction — even cuff readings
+  show real short-interval variability given Lester's arrhythmia, not measurement noise.
+- **`TEMP`** — plain `text` template, genuinely one scalar: `xkey`=temperature (°C),
+  `xkey_ext`=Mode (e.g. "Ear temperature"), no `data`. Same-day duplicates are normal (retake after
+  cleaning the probe tip), not a data-quality issue.
 
-  **Import wrinkle, not yet built**: Samsung's CSV rows carry one `time_offset` per row for
+**Session/exercise data (the original `HealthSession` sketch) not reconsidered yet** under the
+Day-as-base-object model — the start/end-date storage notes below still apply to whatever ends up
+representing a bounded time-span event (exercise, sleep), just not yet re-examined against
+"everything hangs off Day" now that Day is a real content object rather than a proposal.
+
+- **Start/end time storage**: a session's own summary xref row uses `liberty_xref.start_date`/
+  `end_date` directly for the real session start/end instants (not a scalar field). Every imported
+  session already happened, so every row lands in that content record's own synthetic "History" tab
+  by default (`end_date IS NOT NULL` sweep, see `liberty/MANUAL.md`'s Expunge and history section)
+  — fine here specifically because health data is never edited via the UI, so the History tab's
+  Edit→Restore icon swap never applies. Don't assume this same choice is safe for an *editable*
+  xref item elsewhere without re-checking.
+- **Import wrinkle, not yet built**: Samsung's CSV rows carry one `time_offset` per row for
   *both* `start_time` and `end_time` — wrong for a session spanning a BST↔GMT transition (each
   end needs its own offset). Confirmed against a real transition-night sleep record, not assumed.
   Resolve each timestamp against the `Europe/London` IANA zone directly instead of trusting the
   row's single offset for both ends — see `CLAUDE.md`'s 2026-08-22 entry for the verified example.
-
-**Alternative floated 2026-08-18, planning-stage only, not decided**: rather than
-`HealthMetric`/`HealthSession` as the base `liberty_content` objects, make **a calendar Day itself
-the base object**, with weight/blood-pressure/sleep-summary/exercise-reference/step-count etc. all
-hanging off that one Day's content_id as ordinary xref rows (one row per metric-per-day) — mirrors
-how Food's `view_day.php` report already groups things by day, except here Day would be a *real*
-content object rather than a query grouping over separate `FoodAssembly` records. Not yet reconciled
-with two things worth checking before committing to this shape:
-- **Food's own precedent went the other way** — "day is a report, not a record" was an explicit,
-  deliberate decision for `FoodAssembly` (see `project_food_package_scoping` memory), because a
-  day's contents there are genuinely separate real-world events (five possible meals, each its own
-  moment). Health's metrics are more naturally "one value per day" already (a single weight
-  reading, a single night's sleep score), which might make Day-as-record a better fit *here* even
-  though it wasn't for Food — a real architectural difference, not just inconsistency, but worth
-  being explicit about why the two packages would diverge.
-- **Scale interaction with the `jsons/` shape-2 tier** (this file's own shape taxonomy above) —
-  "everything hangs off Day via xref" can't mean literally every raw sensor reading becomes its own
-  `liberty_xref` row (that's the exact tens-of-millions-of-rows problem already ruled out for
-  `movement`/`tracker.heart_rate`/etc.). Read as: one xref row per *metric type* per day (weight,
-  sleep summary, a session *reference*), with the heavy time-series detail still living as a single
-  blob attached via the `series`/`-1` read-only item plan, not decomposed. Worth confirming that's
-  the intended reading before scaffolding around it.
 
 ## v1 scope — cherry-picked CSV tier, `jsons/` tier explicitly deferred
 

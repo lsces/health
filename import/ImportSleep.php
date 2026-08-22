@@ -1,0 +1,133 @@
+<?php
+/**
+ * Import SLEEP xref rows from Samsung Health's sleep export.
+ *
+ * Expects `com.samsung.shealth.sleep.<date>.csv` in HEALTH_IMPORT_PATH
+ * (storage/health/) — copy it from a `health_lester_<date>` split.
+ *
+ * **One row per sleep *session*, not per day** — checked real data first: a
+ * single night can have several sleep rows (a real example: 27→28/06/2026
+ * had three — a short evening nap, the main overnight sleep, and another
+ * the following evening), and none of them cleanly matched the legacy
+ * spreadsheet's single "Sleep Score" figure for that date. Rather than
+ * invent an unverified "which session counts as the day's sleep" rule,
+ * every session gets imported as its own row — same "don't reduce at import
+ * time" principle already used for WT/BP/PULSE/OXI. Picking/aggregating a
+ * day's headline sleep figure is a query-time concern for whatever builds
+ * the day-summary rollup, not this importer's job.
+ *
+ * A session is assigned to the **local (Europe/London) calendar date its own
+ * start_time falls on** — e.g. a sleep starting 23:03 and ending 06:19 the
+ * next morning belongs to the day it started, not the day it ended.
+ *
+ * **BST/GMT handling**: the source has a `time_offset` column, but (per the
+ * same fix already applied to session-shaped data — see health/MANUAL.md's
+ * "Content model" section, session start/end notes) that single offset can't
+ * be trusted for both ends of a session spanning a transition. Both
+ * `start_time`/`end_time` are resolved directly against the `Europe/London`
+ * IANA zone instead, ignoring the row's own `time_offset` entirely.
+ *
+ * `xkey`=sleep_score, `xkey_ext`=sleep_duration (minutes), `data`=json
+ * `{efficiency}`.
+ *
+ * @package health
+ */
+
+require_once __DIR__.'/ImportPulse.php'; // healthParseSamsungCsv(), healthFindLatestSamsungCsv()
+
+use Bitweaver\Health\HealthDay;
+use Bitweaver\Liberty\LibertyXref;
+
+/**
+ * Insert a SLEEP xref row for one session, unless one already exists for
+ * this exact content_id + entry_date.
+ *
+ * @param  int   $pContentId  The day's HealthDay content_id.
+ * @param  int   $pTimestamp  Unix timestamp of the session start (UTC).
+ * @param  float $pScore
+ * @param  float $pDurationMinutes
+ * @param  array $pDetail          ['efficiency'=>..]
+ * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
+ */
+function healthStoreSleep( int $pContentId, int $pTimestamp, float $pScore, float $pDurationMinutes, array $pDetail ): bool {
+	global $gBitDb;
+
+	$entryDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP' AND `entry_date` = ?",
+		[ $pContentId, $entryDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP'",
+		[ $pContentId ]
+	);
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'SLEEP',
+		'xorder'     => $nextXorder,
+		'xkey'       => (string)$pScore,
+		'xkey_ext'   => (string)$pDurationMinutes,
+		'edit'       => json_encode( $pDetail ),
+		'entry_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
+}
+
+/**
+ * Run the full sleep import.
+ *
+ * @param  string $pCsvFile
+ * @return array{created:int,skipped:int,errors:string[]}
+ */
+function healthImportSleep( string $pCsvFile ): array {
+	$result = [ 'created' => 0, 'skipped' => 0, 'errors' => [] ];
+
+	if( !is_readable( $pCsvFile ) ) {
+		$result['errors'][] = "Can't read $pCsvFile";
+		return $result;
+	}
+
+	$tz = new \DateTimeZone( 'Europe/London' );
+
+	foreach( healthParseSamsungCsv( $pCsvFile ) as $rowNum => $row ) {
+		$startStr = $row['com.samsung.health.sleep.start_time'] ?? '';
+		if( !$startStr ) {
+			$result['errors'][] = "Row $rowNum: no start_time";
+			continue;
+		}
+		try {
+			$start = new \DateTime( $startStr, $tz );
+		} catch( \Exception $e ) {
+			$result['errors'][] = "Row $rowNum: unparseable start_time '$startStr'";
+			continue;
+		}
+
+		$score = (float)( $row['sleep_score'] ?? 0 );
+		if( $score <= 0 ) {
+			$result['errors'][] = "Row $rowNum: no sleep_score";
+			continue;
+		}
+
+		$detail = [];
+		if( !empty( $row['efficiency'] ) ) {
+			$detail['efficiency'] = round( (float)$row['efficiency'], 1 );
+		}
+
+		$date = $start->format( 'Y-m-d' );
+		$day  = HealthDay::findOrCreate( $date );
+		if( healthStoreSleep( $day->mContentId, $start->getTimestamp(), $score, (float)( $row['sleep_duration'] ?? 0 ), $detail ) ) {
+			$result['created']++;
+		} else {
+			$result['skipped']++;
+		}
+	}
+
+	return $result;
+}
