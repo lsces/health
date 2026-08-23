@@ -13,8 +13,10 @@
  * content_id — no AM-only/lowest-weight reduction here, that's a query-time
  * concern for whatever eventually builds the day summary (see health/MANUAL.md's
  * "Content model" section). Safe to re-run against an overlapping/refreshed
- * export: dedupes on (content_id, item, entry_date) — a WT row already stored
+ * export: dedupes on (content_id, item, start_date) — a WT row already stored
  * for that exact reading's timestamp is left untouched, not reinserted.
+ * start_date carries the reading's own timestamp; entry_date is left to
+ * LibertyXref's own default (when the row was created).
  *
  * @package health
  */
@@ -65,7 +67,7 @@ function healthParseHealthForYouTimestamp( string $pDate, string $pTime ): ?arra
 
 /**
  * Insert a WT xref row for one weight reading, unless a row already exists for
- * this exact content_id + entry_date (reimport safety — see this file's own
+ * this exact content_id + start_date (reimport safety — see this file's own
  * docblock). Computes its own xorder rather than using LibertyXref's fAddXref
  * path, since WT is flagged multiple=-1 (read-only) and fAddXref would be
  * rejected outright — see health/admin/schema_inc.php's WT comment.
@@ -80,10 +82,10 @@ function healthParseHealthForYouTimestamp( string $pDate, string $pTime ): ?arra
 function healthStoreWT( int $pContentId, int $pTimestamp, float $pWeight, float $pBmi, array $pBodyComp ): bool {
 	global $gBitDb;
 
-	$entryDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
 	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'WT' AND `entry_date` = ?",
-		[ $pContentId, $entryDate ]
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'WT' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
 	);
 	if( $existing ) {
 		return false;
@@ -101,7 +103,7 @@ function healthStoreWT( int $pContentId, int $pTimestamp, float $pWeight, float 
 		'xkey'       => (string)$pWeight,
 		'xkey_ext'   => (string)$pBmi,
 		'edit'       => json_encode( $pBodyComp ),
-		'entry_date' => $pTimestamp,
+		'start_date' => $pTimestamp,
 	];
 	$xref = new LibertyXref();
 	$xref->store( $pHash );

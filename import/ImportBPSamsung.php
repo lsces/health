@@ -29,10 +29,11 @@
  *
  * **Minute-truncated for dedup, not second-precise** — HealthForYou's own
  * timestamps have no seconds (always :00), Samsung's do. Truncating
- * Samsung's `start_time` to the minute before computing `entry_date` means
- * a Samsung reading landing in the same minute as an already-imported
- * HealthForYou reading correctly skips as a duplicate instead of being
- * re-inserted as a false new one purely because its seconds differ.
+ * Samsung's `start_time` to the minute before computing `start_date` (the
+ * dedupe key `healthStoreBP()` matches on) means a Samsung reading landing
+ * in the same minute as an already-imported HealthForYou reading correctly
+ * skips as a duplicate instead of being re-inserted as a false new one
+ * purely because its seconds differ.
  *
  * Each reading is a single instant, not a session — no BST/GMT two-ends
  * problem the way sleep sessions have, but resolved via Europe/London

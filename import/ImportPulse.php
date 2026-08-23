@@ -35,7 +35,7 @@
  *
  * One PULSE xref row per populated slot: xkey = slot average, xkey_ext =
  * low/high json, data = the slot's own bins as json. Safe to re-run: dedupes
- * on (content_id, item, entry_date) same as WT/BP, entry_date being the
+ * on (content_id, item, start_date) same as WT/BP, start_date being the
  * slot's own start instant (UTC).
  *
  * @package health
@@ -130,8 +130,10 @@ function healthLoadBinningData( string $pJsonBaseDir, string $pFilename ): array
 
 /**
  * Insert a PULSE xref row for one half-hour slot, unless one already exists
- * for this exact content_id + entry_date. Computes its own xorder rather than
+ * for this exact content_id + start_date. Computes its own xorder rather than
  * using LibertyXref's fAddXref path, same reasoning as healthStoreWT().
+ * start_date carries the slot's own timestamp; entry_date is left to
+ * LibertyXref's own default (when the row was created).
  *
  * @param  int   $pContentId    The day's HealthDay content_id.
  * @param  int   $pSlotStart    Unix timestamp of the slot's start (UTC).
@@ -144,10 +146,10 @@ function healthLoadBinningData( string $pJsonBaseDir, string $pFilename ): array
 function healthStorePulseSlot( int $pContentId, int $pSlotStart, float $pAverage, float $pLow, float $pHigh, array $pBins ): bool {
 	global $gBitDb;
 
-	$entryDate = gmdate( 'Y-m-d H:i:s', $pSlotStart );
+	$startDate = gmdate( 'Y-m-d H:i:s', $pSlotStart );
 	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE' AND `entry_date` = ?",
-		[ $pContentId, $entryDate ]
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
 	);
 	if( $existing ) {
 		return false;
@@ -165,7 +167,7 @@ function healthStorePulseSlot( int $pContentId, int $pSlotStart, float $pAverage
 		'xkey'       => (string)round( $pAverage, 1 ),
 		'xkey_ext'   => json_encode( [ 'low' => $pLow, 'high' => $pHigh ] ),
 		'edit'       => json_encode( $pBins ),
-		'entry_date' => $pSlotStart,
+		'start_date' => $pSlotStart,
 	];
 	$xref = new LibertyXref();
 	$xref->store( $pHash );

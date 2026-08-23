@@ -33,7 +33,9 @@ use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a STEPS xref row for one day, unless one already exists for this
- * exact content_id + entry_date.
+ * exact content_id + start_date. start_date carries the day's own timestamp;
+ * entry_date is left to LibertyXref's own default (when the row was
+ * created).
  *
  * @param  int   $pContentId  The day's HealthDay content_id.
  * @param  int   $pTimestamp  Unix timestamp (midday UTC of that date — no
@@ -46,10 +48,10 @@ use Bitweaver\Liberty\LibertyXref;
 function healthStoreSteps( int $pContentId, int $pTimestamp, int $pSteps, float $pActiveMins, float $pActiveKcal ): bool {
 	global $gBitDb;
 
-	$entryDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
 	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'STEPS' AND `entry_date` = ?",
-		[ $pContentId, $entryDate ]
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'STEPS' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
 	);
 	if( $existing ) {
 		return false;
@@ -62,7 +64,7 @@ function healthStoreSteps( int $pContentId, int $pTimestamp, int $pSteps, float 
 		'xkey'       => (string)$pSteps,
 		'xkey_ext'   => (string)round( $pActiveMins, 1 ),
 		'edit'       => json_encode( [ 'active_kcal' => round( $pActiveKcal, 1 ) ] ),
-		'entry_date' => $pTimestamp,
+		'start_date' => $pTimestamp,
 	];
 	$xref = new LibertyXref();
 	$xref->store( $pHash );

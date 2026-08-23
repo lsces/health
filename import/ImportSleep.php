@@ -40,7 +40,9 @@ use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a SLEEP xref row for one session, unless one already exists for
- * this exact content_id + entry_date.
+ * this exact content_id + start_date. start_date carries the session's own
+ * start timestamp; entry_date is left to LibertyXref's own default (when the
+ * row was created).
  *
  * @param  int   $pContentId  The day's HealthDay content_id.
  * @param  int   $pTimestamp  Unix timestamp of the session start (UTC).
@@ -52,10 +54,10 @@ use Bitweaver\Liberty\LibertyXref;
 function healthStoreSleep( int $pContentId, int $pTimestamp, float $pScore, float $pDurationMinutes, array $pDetail ): bool {
 	global $gBitDb;
 
-	$entryDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
 	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP' AND `entry_date` = ?",
-		[ $pContentId, $entryDate ]
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
 	);
 	if( $existing ) {
 		return false;
@@ -73,7 +75,7 @@ function healthStoreSleep( int $pContentId, int $pTimestamp, float $pScore, floa
 		'xkey'       => (string)$pScore,
 		'xkey_ext'   => (string)$pDurationMinutes,
 		'edit'       => json_encode( $pDetail ),
-		'entry_date' => $pTimestamp,
+		'start_date' => $pTimestamp,
 	];
 	$xref = new LibertyXref();
 	$xref->store( $pHash );

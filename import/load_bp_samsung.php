@@ -7,7 +7,7 @@
  * Expects com.samsung.shealth.blood_pressure.<date>.csv in HEALTH_IMPORT_PATH
  * (storage/health/) — copy it from a health_lester_<date> split. Safe to
  * re-run, and safe to run alongside/after load_bp.php (HealthForYou/cuff) —
- * both dedupe via minute-level entry_date, so genuinely overlapping readings
+ * both dedupe via minute-level start_date, so genuinely overlapping readings
  * correctly skip regardless of which importer ran first.
  *
  * @package health

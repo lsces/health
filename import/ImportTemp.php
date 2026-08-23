@@ -23,7 +23,9 @@ use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a TEMP xref row for one reading, unless a row already exists for
- * this exact content_id + entry_date.
+ * this exact content_id + start_date. start_date carries the reading's own
+ * timestamp; entry_date is left to LibertyXref's own default (when the row
+ * was created).
  *
  * @param  int    $pContentId  The day's HealthDay content_id.
  * @param  int    $pTimestamp  Unix timestamp of the reading (UTC).
@@ -34,10 +36,10 @@ use Bitweaver\Liberty\LibertyXref;
 function healthStoreTemp( int $pContentId, int $pTimestamp, float $pTemp, string $pMode ): bool {
 	global $gBitDb;
 
-	$entryDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
 	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'TEMP' AND `entry_date` = ?",
-		[ $pContentId, $entryDate ]
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'TEMP' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
 	);
 	if( $existing ) {
 		return false;
@@ -54,7 +56,7 @@ function healthStoreTemp( int $pContentId, int $pTimestamp, float $pTemp, string
 		'xorder'     => $nextXorder,
 		'xkey'       => (string)$pTemp,
 		'xkey_ext'   => $pMode,
-		'entry_date' => $pTimestamp,
+		'start_date' => $pTimestamp,
 	];
 	$xref = new LibertyXref();
 	$xref->store( $pHash );
