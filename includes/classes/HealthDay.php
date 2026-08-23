@@ -192,13 +192,25 @@ class HealthDay extends LibertyContent {
 
 	/**
 	 * Calendar day-grid cell content — see `LibertyContent::getContentList()`'s
-	 * optional `getDayCellHtml()` dispatch. First-cut placeholder: plain
-	 * min/max/count across the day's raw WT/BP/PULSE rows, not the considered
-	 * "pick the real headline reading" day-summary logic still on the todo
-	 * list (lowest-AM-weight-preferring-valid-scan for WT, etc.) — good enough
-	 * to prove the calendar hook works against real imported data, not the
-	 * final rollup. Returns '' (renders nothing, falls through to no tile) for
-	 * a day with none of these three items at all.
+	 * optional `getDayCellHtml()` dispatch.
+	 *
+	 * WT uses `healthDaySummaryWT()`'s already-considered headline reading
+	 * (lowest AM weight, preferring one with a real body-comp scan) instead of
+	 * a plain min/max range across every reading that day — a raw range could
+	 * span normal daily fluctuation or multiple same-session re-weighs, not a
+	 * meaningful "today's weight" figure.
+	 *
+	 * PULSE's range is each day's true low/high across every half-hour slot's
+	 * own `xkey_ext` (that slot's real min/max reading) — **not** `xkey` (the
+	 * slot's own *average*), which was this function's original bug: ranging
+	 * over slot averages is always narrower than the day's real min/max (a
+	 * brief spike gets smoothed into its half-hour average before ever
+	 * reaching this query), which is why it never matched the phone's own
+	 * figures. Confirmed 2026-08-23 after the PULSE/RAISEDHR rebuild made the
+	 * mismatch obvious enough to chase down.
+	 *
+	 * Returns '' (renders nothing, falls through to no tile) for a day with
+	 * none of WT/BP/PULSE at all.
 	 *
 	 * @param  array $pHash  The row from getContentList() — needs content_id/display_url.
 	 * @return string
@@ -207,32 +219,38 @@ class HealthDay extends LibertyContent {
 		global $gBitDb;
 		$contentId = (int)$pHash['content_id'];
 
-		$wt = $gBitDb->getRow(
-			"SELECT MIN(CAST(`xkey` AS DOUBLE PRECISION)) AS lo, MAX(CAST(`xkey` AS DOUBLE PRECISION)) AS hi, COUNT(*) AS n
-				FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'WT'",
-			[ $contentId ]
-		);
+		require_once __DIR__.'/../HealthDaySummary.php';
+
 		$bpCount = (int)$gBitDb->getOne(
 			"SELECT COUNT(*) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
 			[ $contentId ]
 		);
-		$pulse = $gBitDb->getRow(
-			"SELECT MIN(CAST(`xkey` AS DOUBLE PRECISION)) AS lo, MAX(CAST(`xkey` AS DOUBLE PRECISION)) AS hi
-				FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE'",
+		$pulseSlots = $gBitDb->getCol(
+			"SELECT `xkey_ext` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE'",
 			[ $contentId ]
 		);
 
 		$lines = [];
-		if( !empty( $wt['n'] ) ) {
-			$lines[] = $wt['lo'] == $wt['hi']
-				? sprintf( '%.1fkg', $wt['lo'] )
-				: sprintf( '%.1f–%.1fkg', $wt['lo'], $wt['hi'] );
+
+		$wt = healthDaySummaryWT( $contentId );
+		if( $wt ) {
+			$lines[] = sprintf( '%.1fkg', $wt['weight'] );
 		}
 		if( $bpCount ) {
 			$lines[] = $bpCount === 1 ? '1 BP' : "$bpCount BP";
 		}
-		if( !empty( $pulse['lo'] ) ) {
-			$lines[] = sprintf( '%d–%d bpm', $pulse['lo'], $pulse['hi'] );
+
+		$pulseLo = $pulseHi = null;
+		foreach( $pulseSlots as $json ) {
+			$slot = json_decode( (string)$json, true );
+			if( !is_array( $slot ) || !isset( $slot['low'], $slot['high'] ) ) {
+				continue;
+			}
+			$pulseLo = $pulseLo === null ? (float)$slot['low']  : min( $pulseLo, (float)$slot['low'] );
+			$pulseHi = $pulseHi === null ? (float)$slot['high'] : max( $pulseHi, (float)$slot['high'] );
+		}
+		if( $pulseLo !== null ) {
+			$lines[] = sprintf( '%d–%d bpm', $pulseLo, $pulseHi );
 		}
 
 		if( !$lines ) {
