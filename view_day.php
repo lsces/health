@@ -1,12 +1,25 @@
 <?php
 /**
- * Day view — every xref item logged against one HealthDay content_id,
- * generic per-item rendering (title/xkey/xkey_ext/data grouped by item, same
- * column-title convention as list_item.php). Deliberately generic, not the
- * curated single-headline-figure-per-item rollup HealthDaySummary.php is
- * meant for eventually — this just needs to be a real link target for the
- * calendar day-cell (HealthDay::getDisplayUrl()) instead of falling through
- * to the bare kernel content_id router with nowhere to land.
+ * Day view — every xref item logged against one HealthDay content_id, split
+ * across tabs: a "Summary" tab for every item with exactly one row that day
+ * (title + xkey/xkey_ext inline, one line each — the same shape as the
+ * calendar tile, just every single-value item instead of just WT/BP/PULSE),
+ * then one tab per item with more than one row that day (PULSE/RESP/STEMP/
+ * HRV half-hour slots, SLEEP sessions, etc.), each a plain read-only
+ * When/xkey/xkey_ext/data table — same column-title convention as
+ * list_item.php. "Single" vs "multi" is decided per day from the actual row
+ * count, not a fixed per-item list, since some items genuinely vary (BP/OXI/
+ * TEMP/WT can be one or several readings depending on the day).
+ *
+ * Summary tab deliberately doesn't surface each item's own `data` json yet
+ * (body composition, calibration_id, etc.) — todo, per Lester's own framing:
+ * "pad out later with bits hidden in detail."
+ *
+ * Deliberately generic, not the curated single-headline-figure-per-item
+ * rollup HealthDaySummary.php is meant for eventually — this just needs to
+ * be a real link target for the calendar day-cell (HealthDay::
+ * getDisplayUrl()) instead of falling through to the bare kernel content_id
+ * router with nowhere to land.
  *
  * @package health
  */
@@ -62,7 +75,17 @@ foreach( $rows as $row ) {
 	$groups[$item]['rows'][] = $row;
 }
 
-$gBitSmarty->assign( 'gContent', $gContent );
-$gBitSmarty->assign( 'groups',   $groups );
+$singleItems = $multiItems = [];
+foreach( $groups as $item => $g ) {
+	if( count( $g['rows'] ) === 1 ) {
+		$singleItems[$item] = $g;
+	} else {
+		$multiItems[$item] = $g;
+	}
+}
+
+$gBitSmarty->assign( 'gContent',     $gContent );
+$gBitSmarty->assign( 'singleItems',  $singleItems );
+$gBitSmarty->assign( 'multiItems',   $multiItems );
 
 $gBitSystem->display( 'bitpackage:health/view_day.tpl', KernelTools::tra( 'Day' ).': '.$gContent->getTitle() );
