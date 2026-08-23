@@ -18,6 +18,29 @@
 
 global $gBitInstaller;
 
+$gBitInstaller->registerPackageInfo( HEALTH_PKG_NAME, [
+	'description' => 'Health tracks vitals, activity, and sleep — imported from Samsung Health, modeled on the Food package.',
+	'license'     => '<a href="http://www.gnu.org/licenses/licenses.html#LGPL">LGPL</a>',
+] );
+
+$gBitInstaller->registerPreferences( HEALTH_PKG_NAME, [
+	[ HEALTH_PKG_NAME, 'health_menu_text', 'Health' ],
+] );
+
+// ### Default User Permissions
+$gBitInstaller->registerUserPermissions( HEALTH_PKG_NAME, [
+	[ 'p_health_view',    'Can view health days and readings', 'registered', HEALTH_PKG_NAME ],
+	[ 'p_health_create',  'Can create health days and readings', 'editors',  HEALTH_PKG_NAME ],
+	[ 'p_health_update',  'Can update health days and readings', 'editors',  HEALTH_PKG_NAME ],
+	[ 'p_health_expunge', 'Can delete health records',           'admin',    HEALTH_PKG_NAME ],
+	[ 'p_health_admin',   'Can administer health',               'admin',    HEALTH_PKG_NAME ],
+] );
+
+// ### Register content types
+$gBitInstaller->registerContentObjects( HEALTH_PKG_NAME, [
+	'HealthDay' => HEALTH_PKG_CLASS_PATH.'HealthDay.php',
+] );
+
 // Never declared - a real gap (see project_installer_requirements memory), not just
 // cosmetic: liberty 5.0.2 specifically added the sort_order column liberty_xref_item
 // rows below rely on (see liberty/admin/upgrades/5.0.2.php) - every item registration
@@ -43,29 +66,6 @@ $tables = [
 foreach( array_keys( $tables ) as $tableName ) {
 	$gBitInstaller->registerSchemaTable( HEALTH_PKG_NAME, $tableName, $tables[$tableName], TRUE );
 }
-
-$gBitInstaller->registerPackageInfo( HEALTH_PKG_NAME, [
-	'description' => 'Health tracks vitals, activity, and sleep — imported from Samsung Health, modeled on the Food package.',
-	'license'     => '<a href="http://www.gnu.org/licenses/licenses.html#LGPL">LGPL</a>',
-] );
-
-$gBitInstaller->registerPreferences( HEALTH_PKG_NAME, [
-	[ HEALTH_PKG_NAME, 'health_menu_text', 'Health' ],
-] );
-
-// ### Register content types
-$gBitInstaller->registerContentObjects( HEALTH_PKG_NAME, [
-	'HealthDay' => HEALTH_PKG_CLASS_PATH.'HealthDay.php',
-] );
-
-// ### Default User Permissions
-$gBitInstaller->registerUserPermissions( HEALTH_PKG_NAME, [
-	[ 'p_health_view',    'Can view health days and readings', 'registered', HEALTH_PKG_NAME ],
-	[ 'p_health_create',  'Can create health days and readings', 'editors',  HEALTH_PKG_NAME ],
-	[ 'p_health_update',  'Can update health days and readings', 'editors',  HEALTH_PKG_NAME ],
-	[ 'p_health_expunge', 'Can delete health records',           'admin',    HEALTH_PKG_NAME ],
-	[ 'p_health_admin',   'Can administer health',               'admin',    HEALTH_PKG_NAME ],
-] );
 
 // ### Xref seed data
 // liberty_xref_group: x_group, content_type_guid, title, sort_order, role_id, type_href
