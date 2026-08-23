@@ -11,10 +11,12 @@
  * load step; PULSE/RAISEDHR/any future HR-derived feature reads back from
  * this table instead of re-parsing the source files themselves.
  *
- * Full-refresh, not incremental: TRUNCATEs the table first, then reloads
- * everything from the current export in one pass. Safe to re-run any time
- * a new/updated export lands - there's no "existing row" concept to dedupe
- * against, only "what's the current full picture."
+ * Incremental, not full-refresh: no wipe - START_TIME's own PRIMARY KEY
+ * does the dedup work (a timestamp already present just fails the insert,
+ * caught and counted as a duplicate rather than crashing the run - see
+ * healthStoreHRRaw()). Safe to re-run any time a new/updated export lands;
+ * going forward only the new period's files need staging, not the full
+ * history every time.
  *
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs
@@ -182,15 +184,19 @@ function healthImportHRRawExercise( string $pCsvFile, string $pJsonBaseDir ): ar
 }
 
 /**
- * Run the full raw HR sync: wipe HEALTH_HR_RAW, reload both sources.
+ * Run the raw HR sync against both sources. **Incremental, not a wipe-and-
+ * reload** - relies entirely on START_TIME's own PRIMARY KEY to do the
+ * dedup work: a timestamp already in the table from a previous run just
+ * fails the insert and gets caught/counted as a duplicate (see
+ * healthStoreHRRaw()), a genuinely new one inserts cleanly. Same code path
+ * serves both the first full-history backfill and every future top-up
+ * against just the current month's export - no need to distinguish them,
+ * and no risk of a routine future run silently deleting history that
+ * happens not to be in whatever's currently staged in storage/health/.
  *
  * @return array{inserted:int,duplicate:int,rowsSkipped:int,errors:string[]}
  */
 function healthImportHRRaw( string $pPulseCsvFile, string $pPulseJsonDir, string $pExerciseCsvFile, string $pExerciseJsonDir ): array {
-	global $gBitDb;
-
-	$gBitDb->query( 'DELETE FROM health_hr_raw' );
-
 	$bg = healthImportHRRawBackground( $pPulseCsvFile, $pPulseJsonDir );
 	$ex = healthImportHRRawExercise( $pExerciseCsvFile, $pExerciseJsonDir );
 

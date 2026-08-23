@@ -7,10 +7,13 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs
  *   com.samsung.shealth.exercise.<date>.csv + its jsons/ blobs
- * (copy all four from a health_lester_<date> split). Full-refresh, not
- * incremental - safe to re-run, wipes and reloads the whole table each
- * time. Scale: ~2.5 million rows across both sources (full history) - this
- * will take a genuinely long time, longer than any import run so far.
+ * (copy all four from a health_lester_<date> split - for a routine future
+ * top-up, just the current period's export is fine, no need to keep
+ * re-uploading full history). Incremental: safe to re-run, START_TIME's own
+ * PRIMARY KEY does the dedup work, no wipe. First full-history backfill:
+ * ~2.5 million rows across both sources - this will take a genuinely long
+ * time, longer than any import run so far. A routine monthly top-up
+ * against just the new period will be far quicker.
  *
  * @package health
  */
