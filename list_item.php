@@ -22,27 +22,9 @@ $gBitSystem->verifyPermission( 'p_health_view' );
 
 $X = BIT_DB_PREFIX;
 
-/**
- * Per-item column titles for xkey/xkey_ext/data — these are raw storage
- * columns with generic names, not self-describing on their own. Falls back
- * to the raw column name for any item not listed here (e.g. a newly added
- * one not yet given real labels).
- */
-$columnTitles = [
-	'WT'     => [ 'Weight (kg)',  'BMI',              'Body Composition' ],
-	'BP'     => [ 'Systolic',     'Diastolic',        'Detail' ],
-	'PULSE'  => [ 'Average',      'Low/High',         'Minute Detail' ],
-	'OXI'    => [ 'SpO2 Average', 'Pulse',             'SpO2 Min/Max' ],
-	'TEMP'   => [ 'Temperature (°C)', 'Mode',          '' ],
-	'STEPS'  => [ 'Steps',        'Active Mins',      'Active Kcal' ],
-	'ENERGY' => [ 'Energy',       'HRV',              'Detail' ],
-	'SLEEP'  => [ 'Sleep Score',  'Duration (mins)',  'Efficiency' ],
-	'RESP'   => [ 'Average',      'Low/High',         'Minute Detail' ],
-	'STEMP'  => [ 'Average (°C)', 'Low/High',         'Minute Detail' ],
-	'HRV'    => [ 'SDNN',         'RMSSD',            'Slot Detail' ],
-	'STEPTRACK' => [ 'Total Steps', 'Peak (10 min)', 'Day Track' ],
-	'RAISEDHR'  => [ 'Mins >=90bpm', 'Mins >=100bpm', 'Day Detail' ],
-];
+// Per-item column titles for xkey/xkey_ext/data — shared with view_day.php,
+// see HealthDay::getItemColumnTitles()'s own docblock.
+$columnTitles = HealthDay::getItemColumnTitles();
 
 $items = $gBitDb->getAll(
 	"SELECT `item`, `cross_ref_title` FROM `{$X}liberty_xref_item`

@@ -256,4 +256,53 @@ class HealthDay extends LibertyContent {
 		$url  = htmlspecialchars( $pHash['display_url'] ?? '#' );
 		return "<div class=\"calhealthday\"><a href=\"$url\">$body</a></div>";
 	}
+
+	/**
+	 * view_day.php — generic per-item xref browser for one day. Overridden
+	 * here (LibertyContent's own default just routes through the bare kernel
+	 * content_id router) so the calendar day-cell built in getDayCellHtml()
+	 * actually has somewhere real to land, rather than falling through to
+	 * wherever an unhandled content_type_guid ends up. Deliberately not the
+	 * curated day-summary view HealthDaySummary.php is meant for eventually —
+	 * see view_day.php's own docblock.
+	 */
+	public static function getDisplayUrlFromHash( &$pParamHash ) {
+		$ret = null;
+		if( static::verifyId( $pParamHash['content_id'] ?? null ) ) {
+			$ret = HEALTH_PKG_URL.'view_day.php?content_id='.$pParamHash['content_id'];
+		}
+		return $ret;
+	}
+
+	public function getDisplayUrl(): string {
+		return static::getDisplayUrlFromHash( $this->mInfo );
+	}
+
+	/**
+	 * Per-item column titles for xkey/xkey_ext/data — these are raw storage
+	 * columns with generic names, not self-describing on their own. Shared by
+	 * list_item.php (one item across every day) and view_day.php (every item
+	 * for one day) so the two displays can't drift apart. Falls back to the
+	 * raw column name for any item not listed here (e.g. a newly added one
+	 * not yet given real labels).
+	 *
+	 * @return array<string, array{0:string,1:string,2:string}>
+	 */
+	public static function getItemColumnTitles(): array {
+		return [
+			'WT'        => [ 'Weight (kg)',      'BMI',             'Body Composition' ],
+			'BP'        => [ 'Systolic',          'Diastolic',       'Detail' ],
+			'PULSE'     => [ 'Average',           'Low/High',        'Minute Detail' ],
+			'OXI'       => [ 'SpO2 Average',      'Pulse',           'SpO2 Min/Max' ],
+			'TEMP'      => [ 'Temperature (°C)',  'Mode',            '' ],
+			'STEPS'     => [ 'Steps',             'Active Mins',     'Active Kcal' ],
+			'ENERGY'    => [ 'Energy',            'HRV',             'Detail' ],
+			'SLEEP'     => [ 'Sleep Score',       'Duration (mins)', 'Efficiency' ],
+			'RESP'      => [ 'Average',           'Low/High',        'Minute Detail' ],
+			'STEMP'     => [ 'Average (°C)',      'Low/High',        'Minute Detail' ],
+			'HRV'       => [ 'SDNN',              'RMSSD',           'Slot Detail' ],
+			'STEPTRACK' => [ 'Total Steps',       'Peak (10 min)',   'Day Track' ],
+			'RAISEDHR'  => [ 'Mins >=90bpm',      'Mins >=100bpm',   'Day Detail' ],
+		];
+	}
 }
