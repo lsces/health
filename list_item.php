@@ -37,6 +37,10 @@ $columnTitles = [
 	'STEPS'  => [ 'Steps',        'Active Mins',      'Active Kcal' ],
 	'ENERGY' => [ 'Energy',       'HRV',              'Detail' ],
 	'SLEEP'  => [ 'Sleep Score',  'Duration (mins)',  'Efficiency' ],
+	'RESP'   => [ 'Average',      'Low/High',         'Minute Detail' ],
+	'STEMP'  => [ 'Average (°C)', 'Low/High',         'Minute Detail' ],
+	'HRV'    => [ 'SDNN',         'RMSSD',            'Slot Detail' ],
+	'STEPTRACK' => [ 'Total Steps', 'Peak (10 min)', 'Day Track' ],
 ];
 
 $items = $gBitDb->getAll(

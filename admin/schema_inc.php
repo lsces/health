@@ -86,4 +86,24 @@ $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,
 // efficiency as detail.
 $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('SLEEP','healthday','vitals','Sleep',-1,7,3,'','value','[\"efficiency\"]')";
 
+// RESP — half-hour respiratory-rate slots, same 'text' placeholder shape as
+// PULSE (low/high json in xkey_ext doesn't fit an existing generic
+// template). See ImportRespiratoryRate.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RESP','healthday','vitals','Respiratory Rate',-1,8,3,'','text',NULL)";
+
+// STEMP — half-hour skin-temperature slots, same shape as RESP/PULSE. See
+// ImportSkinTemperature.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEMP','healthday','vitals','Skin Temperature',-1,9,3,'','text',NULL)";
+
+// HRV — half-hour slots, sdnn+rmssd as the co-equal headline pair ('value'
+// template, unlike RESP/STEMP/PULSE's low/high-json xkey_ext). The richer
+// per-reading tier deferred in ImportEnergy.php's own docblock. See
+// ImportHRV.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('HRV','healthday','vitals','Heart Rate Variability',-1,10,3,'','value',NULL)";
+
+// STEPTRACK — one row per day (not per slot), full 144-bin intraday step
+// track as data. Genuinely richer companion to STEPS, which only has the
+// coarse daily total. See ImportStepTrack.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPTRACK','healthday','vitals','Step Track',-1,11,3,'','value',NULL)";
+
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );
