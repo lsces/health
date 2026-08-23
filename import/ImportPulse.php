@@ -47,11 +47,17 @@ use Bitweaver\Liberty\LibertyXref;
 const HEALTH_PULSE_SLOT_SECONDS = 1800; // half hour
 
 /**
- * Find the most recent tracker.heart_rate.<date>.csv in $pDir.
+ * Find the most recent tracker.heart_rate.<date>.csv in $pDir - or, for a
+ * storage/health/history/YYYY/ year folder (one file per type, no export-
+ * date suffix - see split_by_year.py), the plain un-suffixed file directly.
  *
  * @return string|null  Full path, or null if none found.
  */
 function healthFindLatestPulseCsv( string $pDir ): ?string {
+	$plain = $pDir.'com.samsung.shealth.tracker.heart_rate.csv';
+	if( is_readable( $plain ) ) {
+		return $plain;
+	}
 	$matches = glob( $pDir.'com.samsung.shealth.tracker.heart_rate.*.csv' );
 	if( !$matches ) {
 		return null;
@@ -74,11 +80,19 @@ function healthFindLatestPulseCsv( string $pDir ): ?string {
  * "no data" rather than a clear error). Only <basename> followed by a pure
  * digit date suffix counts as a match now.
  *
+ * Also checks for a plain un-suffixed <basename>.csv first - the shape a
+ * storage/health/history/YYYY/ year folder uses (one file per type, no
+ * export-date suffix - see split_by_year.py).
+ *
  * @param  string $pDir       HEALTH_IMPORT_PATH, trailing slash included.
  * @param  string $pBasename  e.g. 'com.samsung.shealth.activity.day_summary'.
  * @return string|null
  */
 function healthFindLatestSamsungCsv( string $pDir, string $pBasename ): ?string {
+	$plain = $pDir.$pBasename.'.csv';
+	if( is_readable( $plain ) ) {
+		return $plain;
+	}
 	$matches = glob( $pDir.$pBasename.'.*.csv' );
 	if( !$matches ) {
 		return null;

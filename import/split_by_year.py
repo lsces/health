@@ -8,7 +8,10 @@ Read-only on its inputs - only ever writes to new "<dir>_by_year" output trees,
 never touches health_lester_*/food_lester_* or the raw samsunghealth_lester_*
 archives.
 
-CSV rows go straight into <type>.csv under the matching year. The files/ and
+CSV rows go straight into <type>.csv under the matching year (no export-date
+suffix - each year folder holds exactly one file per type, so there's nothing
+to disambiguate; matches split_healthforyou_by_year.py's own output, which
+never carried a suffix). The files/ and
 jsons/ per-record blob folders (named <datauuid>.<blobtype>.json, bucketed by
 Samsung into meaningless numbered hash folders) are re-bucketed by year instead,
 using the datauuid -> year map built while splitting that type's own CSV -
@@ -86,7 +89,7 @@ def split_csv(csvfile: Path, out_dir: Path):
             if year not in writers:
                 ydir = out_dir / year
                 ydir.mkdir(parents=True, exist_ok=True)
-                fh = open(ydir / csvfile.name, "w", newline="", encoding="utf-8")
+                fh = open(ydir / f"{typename}.csv", "w", newline="", encoding="utf-8")
                 fh.write(preamble + "\n")
                 w = csv.writer(fh)
                 w.writerow(header)
