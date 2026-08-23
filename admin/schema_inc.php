@@ -1,6 +1,6 @@
 <?php
 
-// No tables — HealthDay is a pure liberty_content record, content_id only (same
+// HealthDay itself is a pure liberty_content record, content_id only (same
 // "no ID-alias table" reasoning as Food/Stock's own content types — see Claude
 // memory feedback_content_id_only). WT/PULSE/OXI/BP/TEMP are all liberty_xref rows
 // hung off a Day's content_id, not schema columns — see this package's own
@@ -9,8 +9,30 @@
 // device-sourced readings nobody should hand-edit) — the importer still inserts
 // many rows per item per day by computing its own xorder and never setting
 // fAddXref, which is the only thing -1 actually blocks (see LibertyXref::verify()).
+//
+// health_hr_raw is the one real exception — a genuine table, not a liberty_xref
+// item, added in package version 5.0.2 (see admin/upgrades/5.0.2.php for the full
+// design rationale). A fresh install doesn't replay upgrade files' DDL, only
+// stores their version number, so this section has to define it directly too —
+// registerSchemaTable() below is what an actual install runs.
 
 global $gBitInstaller;
+
+$tables = [
+	'health_hr_raw' => "
+		start_time T PRIMARY,
+		end_time T,
+		heart_rate F NOTNULL,
+		heart_rate_min F,
+		heart_rate_max F,
+		source C(20) NOTNULL,
+		datauuid C(64)
+	",
+];
+
+foreach( array_keys( $tables ) as $tableName ) {
+	$gBitInstaller->registerSchemaTable( HEALTH_PKG_NAME, $tableName, $tables[$tableName], TRUE );
+}
 
 $gBitInstaller->registerPackageInfo( HEALTH_PKG_NAME, [
 	'description' => 'Health tracks vitals, activity, and sleep — imported from Samsung Health, modeled on the Food package.',
