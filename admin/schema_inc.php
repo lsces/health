@@ -12,9 +12,15 @@
 //
 // health_hr_raw is the one real exception — a genuine table, not a liberty_xref
 // item, added in package version 5.0.2 (see admin/upgrades/5.0.2.php for the full
-// design rationale). A fresh install doesn't replay upgrade files' DDL, only
-// stores their version number, so this section has to define it directly too —
-// registerSchemaTable() below is what an actual install runs.
+// design rationale). Deliberately NOT registered here yet, even though a fresh
+// install needs it too (upgrade files' DDL isn't replayed on a fresh install) —
+// found the hard way on srv9: BitSystem::verifyInstalledPackages() checks every
+// table registerSchemaTable() declares against the live DB and ANDs the result
+// into mPackages[health]['installed']; a package can't be offered its own
+// pending upgrade if that upgrade is what would create a table this section
+// already claims should exist. Add health_hr_raw back here only once every
+// live site is actually confirmed at 5.0.2 (i.e. once this comment is the only
+// thing still saying 5.0.1).
 
 global $gBitInstaller;
 
@@ -50,22 +56,6 @@ $gBitInstaller->registerRequirements( HEALTH_PKG_NAME, [
 	'liberty' => [ 'min' => '5.0.2' ],
 	'users'   => [ 'min' => '5.0.0' ],
 ] );
-
-$tables = [
-	'health_hr_raw' => "
-		start_time T PRIMARY,
-		end_time T,
-		heart_rate F NOTNULL,
-		heart_rate_min F,
-		heart_rate_max F,
-		source C(20) NOTNULL,
-		datauuid C(64)
-	",
-];
-
-foreach( array_keys( $tables ) as $tableName ) {
-	$gBitInstaller->registerSchemaTable( HEALTH_PKG_NAME, $tableName, $tables[$tableName], TRUE );
-}
 
 // ### Xref seed data
 // liberty_xref_group: x_group, content_type_guid, title, sort_order, role_id, type_href
