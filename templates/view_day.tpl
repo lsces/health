@@ -6,55 +6,35 @@
 	<div class="body">
 		{jstabs}
 			{jstab title="Summary"}
-				{if $singleItems}
-					<table class="table table-condensed">
-						<tbody>
-							{foreach $singleItems as $item => $g}
-								{foreach $g.rows as $r}
-								<tr>
-									<td>{$g.title|escape}</td>
-									<td>{$g.xkeyTitle|escape}: {$r.xkey|escape}</td>
-									<td>{if $r.xkey_ext !== null && $r.xkey_ext !== ''}{$g.xkeyExtTitle|escape}: {$r.xkey_ext|escape}{/if}</td>
-								</tr>
-								{/foreach}
-							{/foreach}
-						</tbody>
-					</table>
-				{else}
-					<p>{tr}Nothing single-value logged for this day.{/tr}</p>
-				{/if}
+				<table class="table table-condensed">
+					<tbody>
+						{if $wtSummary}
+							<tr><td>{tr}Weight{/tr}</td><td>{$wtSummary.weight|string_format:"%.1f"}kg</td></tr>
+						{/if}
+						{if $bpCount}
+							<tr><td>{tr}Blood Pressure{/tr}</td><td>{$bpCount} {if $bpCount eq 1}{tr}reading{/tr}{else}{tr}readings{/tr}{/if}</td></tr>
+						{/if}
+						{if $hrMin !== null}
+							<tr><td>{tr}Pulse Range{/tr}</td><td>{$hrMin}&ndash;{$hrMax} bpm</td></tr>
+						{/if}
+						{if !$wtSummary && !$bpCount && $hrMin === null}
+							<tr><td colspan="2">{tr}Nothing to summarise for this day yet.{/tr}</td></tr>
+						{/if}
+					</tbody>
+				</table>
 			{/jstab}
 
-			{foreach $multiItems as $item => $g}
-				{jstab title="$g.title"}
-					<table class="table table-condensed">
-						<thead>
-							<tr>
-								<th>{tr}When{/tr}</th>
-								<th>{$g.xkeyTitle|escape}</th>
-								<th>{$g.xkeyExtTitle|escape}</th>
-								<th>{$g.dataTitle|escape}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{foreach $g.rows as $r}
-							<tr>
-								<td>{$r.start_date|escape}</td>
-								<td>{$r.xkey|escape}</td>
-								<td>{$r.xkey_ext|escape}</td>
-								<td>
-									{if $r.data_summary}
-										<details><summary>{$r.data_summary|escape}</summary><pre>{$r.data|escape}</pre></details>
-									{else}
-										{$r.data|escape}
-									{/if}
-								</td>
-							</tr>
-							{/foreach}
-						</tbody>
-					</table>
-				{/jstab}
-			{/foreach}
+			{jstab title="Data"}
+				{if $gXrefInfo && $gXrefInfo->mGroups}
+					{jstabs}
+						{foreach $gXrefInfo->mGroups as $group}
+							{include file=$gContent->getXrefListTemplate($group->mTemplate) xrefGroup=$group allow_edit=false allow_add=false}
+						{/foreach}
+					{/jstabs}
+				{else}
+					<p>{tr}Nothing logged for this day.{/tr}</p>
+				{/if}
+			{/jstab}
 		{/jstabs}
 	</div>
 </div>
