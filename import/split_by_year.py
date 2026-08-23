@@ -11,7 +11,12 @@ archives.
 CSV rows go straight into <type>.csv under the matching year. The files/ and
 jsons/ per-record blob folders (named <datauuid>.<blobtype>.json, bucketed by
 Samsung into meaningless numbered hash folders) are re-bucketed by year instead,
-using the datauuid -> year map built while splitting that type's own CSV.
+using the datauuid -> year map built while splitting that type's own CSV -
+but still re-bucketed one level deeper by the blob filename's own first
+character (e.g. jsons/<type>/f/f8e3e023-....json), since that's the
+convention ImportHRRaw.php's healthLoadBinningData() (and everything else
+reading these blobs) actually expects - dropping it entirely, as this script
+used to, silently produced zero matches for every blob in a year split.
 
 Re-run any time after split_health.sh has been (re-)run for a new export - each
 "<dir>_by_year" output is rebuilt from scratch, so it's always a clean, current
@@ -26,6 +31,14 @@ from pathlib import Path
 BASE = Path("/home/lester/Personal/Health/Samsung Health")
 
 TYPE_SUFFIX_RE = re.compile(r"^(.*)\.\d+\.csv$")
+
+# Confirmed real phone-acquisition date (see health/CLAUDE.md's HealthForYou 2024 backfill
+# entry) - anything dated earlier is device-setup placeholder noise, not real data (e.g. the
+# 4 blood_pressure rows that used to land in a spurious "2023" year folder here). Dropped
+# entirely at split time rather than filtered later, so the archive output stays as clean as
+# HealthForYou's own split already is - HFY's export never had this problem since its own
+# date range only ever started from the real acquisition date.
+PHONE_ACQUIRED = "2024-06-29"
 
 
 def find_col(header, name):
@@ -61,9 +74,12 @@ def split_csv(csvfile: Path, out_dir: Path):
             if not row:
                 continue
             row_count += 1
-            year = "unknown"
+            date_str = None
             if start_idx is not None and start_idx < len(row) and row[start_idx]:
-                year = row[start_idx][:4]
+                date_str = row[start_idx][:10]
+            if date_str is not None and date_str < PHONE_ACQUIRED:
+                continue  # pre-acquisition placeholder noise, not real data - drop entirely
+            year = date_str[:4] if date_str else "unknown"
             if uuid_idx is not None and uuid_idx < len(row) and row[uuid_idx]:
                 uuid_year[row[uuid_idx]] = year
 
@@ -93,7 +109,7 @@ def split_blobs(typedir: Path, typename: str, uuid_year: dict, sub: str, out_dir
         year = uuid_year.get(duuid, "unknown")
         if year == "unknown":
             unknown += 1
-        dest_dir = out_dir / year / sub / typename
+        dest_dir = out_dir / year / sub / typename / blobfile.name[0]
         dest_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(blobfile, dest_dir / blobfile.name)
         moved += 1
