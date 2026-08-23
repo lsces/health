@@ -1,17 +1,16 @@
 <?php
 /**
- * Import RAISEDHR (minutes with heart rate above 90/100 bpm, per day) from
- * Samsung Health's tracker.heart_rate export — see ImportRaisedHR.php's own
- * docblock for the full reasoning, why per-day rather than per-exercise-
- * session, and why 90/100 rather than Samsung's own hr_zone thresholds.
+ * Import RAISEDHR (minutes with heart rate above 90/100bpm headline, plus a
+ * 130bpm detail tier, per day) from two Samsung Health sources combined —
+ * see ImportRaisedHR.php's own docblock for the full reasoning: exercise
+ * live_data for the window each session covers, PULSE's background
+ * tracker.heart_rate bins for everything else that day.
  *
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
- *   com.samsung.shealth.tracker.heart_rate.<date>.csv
- *   jsons/com.samsung.shealth.tracker.heart_rate/<first-char>/<uuid>....json
- * (copy both from a health_lester_<date> split — same files PULSE uses).
- * Safe to re-run, and safe to run alongside/after load_pulse.php - both
- * read the same source independently, neither depends on the other having
- * run first.
+ *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs
+ *   com.samsung.shealth.exercise.<date>.csv + its jsons/ blobs
+ * (copy all four from a health_lester_<date> split — the first pair is the
+ * same files PULSE uses). Safe to re-run.
  *
  * @package health
  */
@@ -25,17 +24,26 @@ $gBitSystem->verifyPermission( 'p_health_admin' );
 
 require_once __DIR__.'/ImportRaisedHR.php';
 
-$csvFile = healthFindLatestPulseCsv( HEALTH_IMPORT_PATH );
-$jsonDir = HEALTH_IMPORT_PATH.'jsons/com.samsung.shealth.tracker.heart_rate/';
+$pulseCsv    = healthFindLatestPulseCsv( HEALTH_IMPORT_PATH );
+$pulseJsons  = HEALTH_IMPORT_PATH.'jsons/com.samsung.shealth.tracker.heart_rate/';
+$exerciseCsv = healthFindLatestSamsungCsv( HEALTH_IMPORT_PATH, 'com.samsung.shealth.exercise' );
+$exerciseJsons = HEALTH_IMPORT_PATH.'jsons/com.samsung.shealth.exercise/';
 
-if( !$csvFile ) {
+if( !$pulseCsv || !$exerciseCsv ) {
+	$missing = [];
+	if( !$pulseCsv ) {
+		$missing[] = 'com.samsung.shealth.tracker.heart_rate.*.csv';
+	}
+	if( !$exerciseCsv ) {
+		$missing[] = 'com.samsung.shealth.exercise.*.csv';
+	}
 	$result = [ 'created' => 0, 'skipped' => 0, 'rowsNoBinning' => 0,
-		'errors' => [ 'No com.samsung.shealth.tracker.heart_rate.*.csv found in '.HEALTH_IMPORT_PATH ] ];
+		'errors' => [ 'Not found in '.HEALTH_IMPORT_PATH.': '.implode( ', ', $missing ) ] ];
 } else {
-	$result = healthImportRaisedHR( $csvFile, $jsonDir );
+	$result = healthImportRaisedHR( $pulseCsv, $pulseJsons, $exerciseCsv, $exerciseJsons );
 }
 
-$gBitSmarty->assign( 'csvFile', $csvFile ?? '(none found)' );
+$gBitSmarty->assign( 'csvFile', ( $pulseCsv ?? '(none found)' ).' + '.( $exerciseCsv ?? '(none found)' ) );
 $gBitSmarty->assign( 'created', $result['created'] );
 $gBitSmarty->assign( 'skipped', $result['skipped'] );
 $gBitSmarty->assign( 'rowsNoBinning', $result['rowsNoBinning'] );
