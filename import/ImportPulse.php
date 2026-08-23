@@ -66,12 +66,25 @@ function healthFindLatestPulseCsv( string $pDir ): ?string {
  * healthFindLatestPulseCsv(), generalised once a second Samsung CSV type
  * needed it (activity.day_summary/vitality_score/sleep).
  *
+ * **Anchored, not a loose glob** — `$pBasename.*.csv` also matches any
+ * sub-type file sharing the same prefix (found live: 'com.samsung.shealth.
+ * exercise' also glob-matched exercise.weather/.extension/.recovery_heart_
+ * rate/etc., and sort()+end() silently picked exercise.recovery_heart_rate
+ * instead of the real file - wrong shape entirely, every row read back as
+ * "no data" rather than a clear error). Only <basename> followed by a pure
+ * digit date suffix counts as a match now.
+ *
  * @param  string $pDir       HEALTH_IMPORT_PATH, trailing slash included.
  * @param  string $pBasename  e.g. 'com.samsung.shealth.activity.day_summary'.
  * @return string|null
  */
 function healthFindLatestSamsungCsv( string $pDir, string $pBasename ): ?string {
 	$matches = glob( $pDir.$pBasename.'.*.csv' );
+	if( !$matches ) {
+		return null;
+	}
+	$pattern = '/^'.preg_quote( $pBasename, '/' ).'\.\d+\.csv$/';
+	$matches = array_filter( $matches, fn( $m ) => preg_match( $pattern, basename( $m ) ) === 1 );
 	if( !$matches ) {
 		return null;
 	}
