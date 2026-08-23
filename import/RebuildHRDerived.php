@@ -156,6 +156,11 @@ function healthRebuildDayRaisedHR( int $pContentId, string $pDate, array $pRows 
 	$bgHigh = healthRaisedHRMinutes( $background, HEALTH_RAISEDHR_THRESHOLD_HIGH, HEALTH_RAISEDHR_BACKGROUND_GAP_CAP );
 	$bgTop  = healthRaisedHRMinutes( $background, HEALTH_RAISEDHR_THRESHOLD_TOP, HEALTH_RAISEDHR_BACKGROUND_GAP_CAP );
 
+	// Cached here since RAISEDHR is one row/day (PULSE is one row per half-hour
+	// slot) - the calendar day-cell reads these directly rather than scanning
+	// every slot's own xkey_ext to re-derive the same day's true min/max.
+	$rates = array_column( $pRows, 'heart_rate' );
+
 	$detail = [
 		'mins_130'                => round( $exTop + $bgTop, 1 ),
 		'exercise_mins_90'        => round( $exLow, 1 ),
@@ -166,6 +171,8 @@ function healthRebuildDayRaisedHR( int $pContentId, string $pDate, array $pRows 
 		'background_mins_100'     => round( $bgHigh, 1 ),
 		'background_mins_130'     => round( $bgTop, 1 ),
 		'background_sample_count' => count( $background ),
+		'hr_min'                  => $rates ? min( $rates ) : null,
+		'hr_max'                  => $rates ? max( $rates ) : null,
 	];
 
 	healthRebuildDeleteDayItem( $pContentId, 'RAISEDHR' );

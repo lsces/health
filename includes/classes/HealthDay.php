@@ -200,17 +200,20 @@ class HealthDay extends LibertyContent {
 	 * span normal daily fluctuation or multiple same-session re-weighs, not a
 	 * meaningful "today's weight" figure.
 	 *
-	 * PULSE's range is each day's true low/high across every half-hour slot's
-	 * own `xkey_ext` (that slot's real min/max reading) — **not** `xkey` (the
-	 * slot's own *average*), which was this function's original bug: ranging
-	 * over slot averages is always narrower than the day's real min/max (a
-	 * brief spike gets smoothed into its half-hour average before ever
-	 * reaching this query), which is why it never matched the phone's own
-	 * figures. Confirmed 2026-08-23 after the PULSE/RAISEDHR rebuild made the
-	 * mismatch obvious enough to chase down.
+	 * Pulse range comes from RAISEDHR's own cached `hr_min`/`hr_max` (see
+	 * RebuildHRDerived.php's healthRebuildDayRaisedHR(), one row per day) —
+	 * not a PULSE scan. First fix here read PULSE's own `xkey_ext` per slot
+	 * (that slot's real min/max, not `xkey`'s average — the *original* bug,
+	 * ranging over slot averages, which is always narrower than the day's
+	 * real min/max since a brief spike gets smoothed into its half-hour
+	 * average first, and is why it never matched the phone's own figures).
+	 * Correct, but redundant to compute fresh on every render: RAISEDHR
+	 * already has the same day's true min/max sitting in one row, cached at
+	 * rebuild time, cheaper to read than decoding every PULSE slot's json
+	 * again for the same figure. Both fixed 2026-08-23.
 	 *
 	 * Returns '' (renders nothing, falls through to no tile) for a day with
-	 * none of WT/BP/PULSE at all.
+	 * none of WT/BP/RAISEDHR at all.
 	 *
 	 * @param  array $pHash  The row from getContentList() — needs content_id/display_url.
 	 * @return string
@@ -225,8 +228,8 @@ class HealthDay extends LibertyContent {
 			"SELECT COUNT(*) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
 			[ $contentId ]
 		);
-		$pulseSlots = $gBitDb->getCol(
-			"SELECT `xkey_ext` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE'",
+		$raisedHrData = $gBitDb->getOne(
+			"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
 			[ $contentId ]
 		);
 
@@ -240,17 +243,9 @@ class HealthDay extends LibertyContent {
 			$lines[] = $bpCount === 1 ? '1 BP' : "$bpCount BP";
 		}
 
-		$pulseLo = $pulseHi = null;
-		foreach( $pulseSlots as $json ) {
-			$slot = json_decode( (string)$json, true );
-			if( !is_array( $slot ) || !isset( $slot['low'], $slot['high'] ) ) {
-				continue;
-			}
-			$pulseLo = $pulseLo === null ? (float)$slot['low']  : min( $pulseLo, (float)$slot['low'] );
-			$pulseHi = $pulseHi === null ? (float)$slot['high'] : max( $pulseHi, (float)$slot['high'] );
-		}
-		if( $pulseLo !== null ) {
-			$lines[] = sprintf( '%d–%d bpm', $pulseLo, $pulseHi );
+		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
+		if( is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] ) ) {
+			$lines[] = sprintf( '%d–%d bpm', $raisedHr['hr_min'], $raisedHr['hr_max'] );
 		}
 
 		if( !$lines ) {
