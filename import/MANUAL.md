@@ -1,18 +1,19 @@
-# Processing a Samsung Health export
+# Processing a Samsung Health / HealthForYou export
 
-Reference for turning a raw Samsung Health export into the files the `health`/`food` package
-importers (`ImportBP.php`, `ImportWT.php`, `ImportFoodInfo.php`, etc.) actually read. Samsung
-Health has no API and no incremental export — every download is a **full** dump of your entire
-history, one CSV per data type, plus per-record detail blobs (`files/`/`jsons/`) for types like
-exercise, ECG, and sleep stages.
+Reference for turning a raw Samsung Health or HealthForYou export into the files the `health`/
+`food` package importers (`ImportBP.php`, `ImportWT.php`, `ImportFoodInfo.php`, etc.) actually
+read. Neither source has an API or an incremental export — every download is a **full** dump of
+your entire history.
 
-## 1. Export from the Samsung Health app
+## Samsung Health
+
+### 1. Export from the Samsung Health app
 
 Produces one dated folder, `samsunghealth_<user>_<YYYYMMDDHHMMSS>/` — a flat set of
 `com.samsung.health.*`/`com.samsung.shealth.*` CSVs (each with a 2-line preamble before the real
 header row) plus `files/`/`jsons/` subfolders keyed by type name.
 
-## 2. `split_health.sh` — separate food from health, drop app/device noise
+### 2. `split_health.sh` — separate food from health, drop app/device noise
 
 ```
 ./split_health.sh
@@ -33,7 +34,7 @@ already processed; it only ever (re-)creates that date's pair, never touches the
 **Edit `BASE` at the top of the script first** — it's a hardcoded path to wherever you keep your
 exports, not autodetected.
 
-## 3. `split_by_year.py` — re-split by event year (optional, recommended for multi-year history)
+### 3. `split_by_year.py` — re-split by event year (optional, recommended for multi-year history)
 
 ```
 ./split_by_year.py           # every food_*/health_* folder present
@@ -55,7 +56,7 @@ every future full download.
 
 **Edit `BASE` at the top of the script first**, same as above.
 
-## 4. Get the CSVs where the importers expect them
+### 4. Get the CSVs where the importers expect them
 
 The PHP importers (`load_bp_samsung.php`, `load_food_info.php`, etc.) read directly from
 `HEALTH_IMPORT_PATH`/`FOOD_IMPORT_PATH` (both resolve to `storage/health/` and `storage/food/`
@@ -69,3 +70,46 @@ don't nest a year subfolder there for data you actually want picked up next run.
 `files`/`jsons` blobs are never read by any importer — GPS tracks, ECG waveform PDFs, and other
 raw per-record device telemetry aren't part of what gets imported. No need to copy them anywhere
 near `storage/`.
+
+## HealthForYou
+
+Samsung's separate BP-cuff-companion app (weight/BP/pulse-oximeter/temperature readings), exported
+independently of Samsung Health proper — some of the same physical readings end up in both (see
+`ImportBPSamsung.php`'s docblock for how the BP importer dedupes across sources), but HealthForYou
+doesn't retain everything Samsung Health ends up syncing, so both are worth importing.
+
+### 1. Export from the HealthForYou app
+
+Drop the downloaded `HealthForYouApp_DataExport (N).csv` into
+`~/Personal/Health/HealthForYouApp/` (or wherever `BASE` in the two scripts below points). Unlike
+Samsung Health, you choose the date range when exporting — the app has your full history, the
+range is just an export-time choice, not a retention limit. One CSV, semicolon-delimited, a
+preamble followed by one block per section (Weight/Blood pressure/Pulse Oximeter/Temperature),
+newest rows first.
+
+### 2. `split_healthforyou.py` — one CSV per section
+
+```
+./split_healthforyou.py
+```
+
+Produces `healthforyou_<user>_<YYYYMMDD>/` (named after the export's own "To" date) with 4 files:
+`weight.csv`, `blood_pressure.csv`, `pulse_oximeter.csv`, `temperature.csv`. A new section title
+showing up in a future export needs adding to `SECTION_FILES` in the script — unrecognised
+sections are skipped with a warning rather than silently dropped.
+
+### 3. `split_healthforyou_by_year.py` — re-split by year (optional)
+
+```
+./split_healthforyou_by_year.py
+```
+
+Same idea as Samsung's `split_by_year.py`, much simpler — no per-record blobs to worry about,
+just the 4 section CSVs split by their `Date` column (always column 0, `DD/MM/YYYY`) into a
+sibling `..._by_year/<year>/` tree.
+
+### 4. Get the CSVs where the importers expect them
+
+Same `HEALTH_IMPORT_PATH` (`storage/health/`) as Samsung, but bare filenames — `weight.csv`,
+`blood_pressure.csv`, `pulse_oximeter.csv`, `temperature.csv` — with no Samsung-style prefix, so
+both sources' current-year files coexist in `storage/health/` without collision.
