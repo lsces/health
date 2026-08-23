@@ -583,3 +583,66 @@ in `admin/upgrades/5.0.2.php` until every live site (srv9, then srv10) is confir
 my first attempt at documenting this — the fix landed with a comment explaining the framework
 mechanism inline in health's own `schema_inc.php`, which isn't the right home for a bug that isn't
 health's; trimmed to a one-line pointer at kernel's entry instead.
+
+## 2026-08-23 (later) — staged per-year `HEALTH_HR_RAW` import, and two real bugs it surfaced
+
+A full-history `load_hr_raw.php` run in one pass proved too slow (the earlier session's attempt
+paused at 722,633 rows). Moved to a staged, one-year-at-a-time approach instead — desktop first,
+srv9 to follow once desktop's numbers look right.
+
+**`?year=YYYY` option added to `load_hr_raw.php`**: points at `storage/health/history/YYYY/`
+instead of the flat `storage/health/`. Either HR source being entirely absent for a year (2024 has
+no background `tracker.heart_rate` data at all) is expected, not an error — only aborts if both are
+missing.
+
+**Two real bugs found testing the 2024 chunk, both in `split_by_year.py`, not the importer**:
+1. `split_blobs()` copied every blob flat into `jsons/<type>/`, discarding the single-char bucket
+   (by the blob filename's own first character) that `healthLoadBinningData()` — and everything
+   else reading these blobs — actually expects. Silently produced zero HR samples for all 158 of
+   2024's exercise sessions before this was caught. Fixed by re-bucketing on the way out.
+2. The Samsung export's own device-setup placeholder rows (4 `blood_pressure` rows dated before
+   the real 2024-06-29 phone-acquisition date) were landing in a spurious `2023` year folder —
+   harmless at import time (`ImportBPSamsung.php` already excludes them) but noise in the archive.
+   Dropped at split time now, matching HealthForYou's own split output, which never had this
+   problem (its own export range only ever started from the real acquisition date).
+
+**Also dropped the export-date suffix** from `split_by_year.py`'s output filenames (`com.samsung.
+shealth.exercise.csv`, not `...20260814090949.csv`) — each year folder holds exactly one file per
+type, nothing to disambiguate, matching HealthForYou's split which never had a suffix either.
+`healthFindLatestPulseCsv()`/`healthFindLatestSamsungCsv()` now check for the plain name first,
+falling back to the suffixed-glob-latest logic unchanged for the flat `storage/health/` case, where
+multiple export batches can genuinely coexist.
+
+**2024 confirmed a genuine dead end, not a bug**: once the bucket fix was in, all 158 exercise
+sessions parsed correctly but had no `heart_rate` field at all in their `live_data` — the watch
+simply wasn't recording HR during exercise that far back. Combined with zero background coverage,
+2024 contributes nothing to `HEALTH_HR_RAW` either way.
+
+**2025 run (the real first result)**: 1,436,899 rows — 123,272 background (2025-03-16 through
+2025-12-31), 1,313,627 exercise (2025-03-15 through 2025-12-31). **292 distinct days with data out
+of 292 days in that range — no day-level gaps.** Monthly background runs a steady ~12-14k rows
+(~6-7 hrs/day of continuous tracking); exercise ranges from 59k (partial March) to 169k (October,
+the busiest month) — nothing anomalous in either.
+
+Hit nginx's `fastcgi_read_timeout` (300s, set earlier for food's importers) partway through the
+2025 run — confirmed via the still-running php-fpm worker and a climbing row count that this only
+killed the *browser's* connection, not the import itself (`set_time_limit(0)` plus no output
+flushed until the very end means php-fpm keeps going regardless). Bumped to 1800s on desktop's
+`nginx-desktop/vhosts.d/24.local-rdmcloud.vhosts.conf` anyway, purely so the next staged run
+doesn't produce a misleading "did it hang?" moment.
+
+**`stage_history_year.sh` added** (`health/import/`): automates what had been three rounds of
+manual `cp`/`chown` (2024, 2025, 2026) — finds the newest matching `health_lester_*_by_year/YYYY`
+and `healthforyou_lester_*_by_year/YYYY`, wipes and replaces just that year's
+`storage/health/history/YYYY/`, fixes ownership. Built because Samsung's own export is always a
+fresh full-history dump, never incremental — Lester's own framing: "the next download will be a
+complete set again, everything there already + then extra days." That means `split_by_year.py`'s
+rebuilt-from-scratch `<year>/` folder is already the complete, current archive for that year after
+every new download, with no merge/diff logic needed — re-running `split_health.sh` +
+`split_by_year.py` (+ the HealthForYou equivalents) against the new export, then this script, then
+`load_hr_raw.php?year=YYYY` again (safe/idempotent via `START_TIME`'s own PK) is the whole update
+workflow. Going forward, the flat `storage/health/` top level is meant to hold just the newest
+download for the other (non-year-staged) importers, not double as "this year's data" — 2024/2025
+staged from the existing `20260814090949` export, 2026 likewise (14,813 background rows, 482
+exercise sessions, partial year so far), all three verified identical whether staged by hand or via
+the new script.
