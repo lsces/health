@@ -30,10 +30,15 @@ require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 const HEALTH_HR_RAW_BATCH_SIZE = 5000; // rows per commit
 
 /**
- * Insert one raw HR row. Returns TRUE on success, FALSE on failure
- * (including a START_TIME primary-key collision - genuinely rare, not
- * expected to recur across sources given background goes quiet exactly
- * when exercise is active, but not assumed impossible).
+ * Insert one raw HR row. Returns TRUE on success, FALSE on failure,
+ * including a START_TIME primary-key collision - not as rare as assumed
+ * when this was first written: hit a real one within the exercise source
+ * itself (same class of exact-duplicate-sync artifact already confirmed in
+ * step_daily_trend). This ADOdb/PDO driver throws on a constraint
+ * violation rather than returning false (checked query()'s source but not
+ * its actual runtime behaviour under PDO - wrong assumption, caught live),
+ * so the insert is wrapped in a try/catch here rather than trusting a
+ * falsy return alone.
  */
 function healthStoreHRRaw( \DateTime $pStart, ?\DateTime $pEnd, float $pHeartRate, ?float $pMin, ?float $pMax, string $pSource, ?string $pDatauuid ): bool {
 	global $gBitDb;
@@ -47,7 +52,18 @@ function healthStoreHRRaw( \DateTime $pStart, ?\DateTime $pEnd, float $pHeartRat
 		'source'     => $pSource,
 		'datauuid'   => $pDatauuid,
 	];
-	return (bool)$gBitDb->associateInsert( 'health_hr_raw', $row );
+
+	try {
+		return (bool)$gBitDb->associateInsert( 'health_hr_raw', $row );
+	} catch( \Throwable $e ) {
+		// A failed statement can leave the current transaction unusable for
+		// further inserts on some drivers - reset it defensively rather than
+		// risk every subsequent row in this batch cascading into the same
+		// failure until the next scheduled commit.
+		$gBitDb->CompleteTrans();
+		$gBitDb->StartTrans();
+		return false;
+	}
 }
 
 /**
