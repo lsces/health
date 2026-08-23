@@ -75,6 +75,18 @@ if( $selectedItem !== '' ) {
 			ORDER BY x.`entry_date` DESC",
 		[ $selectedItem ]
 	);
+
+		// PULSE's per-slot bin arrays (and anything else similarly dense) make
+		// the raw JSON column unreadable - collapse anything past a handful of
+		// array items behind a <details> disclosure in the template, summary
+		// text only, rather than truncating the string (which would just cut
+		// valid JSON mid-object).
+		foreach( $rows as &$row ) {
+			$decoded = json_decode( (string)$row['data'], true );
+			$row['data_summary'] = ( is_array( $decoded ) && count( $decoded ) > 3 )
+				? count( $decoded ).' items' : null;
+		}
+		unset( $row );
 }
 
 BitBase::postGetList( $_REQUEST );

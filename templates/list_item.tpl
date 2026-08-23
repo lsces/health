@@ -35,7 +35,13 @@
 							<td>{$r.day_title|escape}</td>
 							<td>{$r.xkey|escape}</td>
 							<td>{$r.xkey_ext|escape}</td>
-							<td>{$r.data|escape}</td>
+							<td>
+								{if $r.data_summary}
+									<details><summary>{$r.data_summary|escape}</summary><pre>{$r.data|escape}</pre></details>
+								{else}
+									{$r.data|escape}
+								{/if}
+							</td>
 						</tr>
 						{/foreach}
 					</tbody>
