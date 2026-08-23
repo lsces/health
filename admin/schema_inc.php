@@ -12,15 +12,11 @@
 //
 // health_hr_raw is the one real exception — a genuine table, not a liberty_xref
 // item, added in package version 5.0.2 (see admin/upgrades/5.0.2.php for the full
-// design rationale). Deliberately NOT registered here yet, even though a fresh
-// install needs it too (upgrade files' DDL isn't replayed on a fresh install) —
-// found the hard way on srv9: BitSystem::verifyInstalledPackages() checks every
-// table registerSchemaTable() declares against the live DB and ANDs the result
-// into mPackages[health]['installed']; a package can't be offered its own
-// pending upgrade if that upgrade is what would create a table this section
-// already claims should exist. Add health_hr_raw back here only once every
-// live site is actually confirmed at 5.0.2 (i.e. once this comment is the only
-// thing still saying 5.0.1).
+// design rationale). Deliberately NOT registered here yet — a fresh install needs
+// it too, but adding it before every live site has actually run the 5.0.2 upgrade
+// breaks the installer's own upgrade detection for this package; see kernel/
+// CLAUDE.md's 2026-08-23 entry for the framework-level why. Add it back here once
+// every site is confirmed at 5.0.2.
 
 global $gBitInstaller;
 

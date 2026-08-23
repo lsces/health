@@ -560,3 +560,26 @@ physiological variability given Lester's arrhythmia, not a data error. Total `BP
 
 **All of BP is now imported from both available sources.** Still open: Exercise Raised HR, Sleep
 BPM, `FoodDay`, the real day-summary rollup, Calendar's layout tidy-up.
+
+## 2026-08-23 — `health_hr_raw` (5.0.2) surfaced a real installer gap, fixed properly via schema_inc.php/upgrades/5.0.2.php
+
+Built `HEALTH_HR_RAW` (unifies both raw Samsung HR sources — see `ImportHRRaw.php`'s own docblock)
+as a genuine table, not a `liberty_xref` item, per Lester's explicit "no manual tweaks" directive —
+everything went through `admin/schema_inc.php` (fresh installs) + `admin/upgrades/5.0.2.php`
+(existing installs via the real installer), not raw isql.
+
+**Hit a real installer bug getting there**: registering `health_hr_raw` in `schema_inc.php`
+immediately made the installer stop offering health's own pending 5.0.2 upgrade on srv9, and
+dropped health from the requirements table — despite identical code to desktop. Desktop only
+looked fine because the table already existed there from an earlier manual isql create (a sunk-
+cost exception made before this was built properly), which happened to mask the exact bug now
+found on srv9's clean state. Root cause is a framework-level `BitSystem::verifyInstalledPackages()`
+quirk, not anything health-specific — full mechanism documented in `kernel/CLAUDE.md`'s matching
+2026-08-23 entry.
+
+**Fix applied here**: `health_hr_raw` pulled back out of `schema_inc.php` for now — it lives only
+in `admin/upgrades/5.0.2.php` until every live site (srv9, then srv10) is confirmed upgraded to
+5.0.2, at which point it goes back into `schema_inc.php` for future fresh installs. Lester caught
+my first attempt at documenting this — the fix landed with a comment explaining the framework
+mechanism inline in health's own `schema_inc.php`, which isn't the right home for a bug that isn't
+health's; trimmed to a one-line pointer at kernel's entry instead.
