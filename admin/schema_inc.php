@@ -18,6 +18,8 @@
 
 global $gBitInstaller;
 
+error_log( 'HEALTH DEBUG: schema_inc.php loading on '.php_uname( 'n' ) );
+
 $gBitInstaller->registerPackageInfo( HEALTH_PKG_NAME, [
 	'description' => 'Health tracks vitals, activity, and sleep — imported from Samsung Health, modeled on the Food package.',
 	'license'     => '<a href="http://www.gnu.org/licenses/licenses.html#LGPL">LGPL</a>',
@@ -50,6 +52,9 @@ $gBitInstaller->registerRequirements( HEALTH_PKG_NAME, [
 	'liberty' => [ 'min' => '5.0.2' ],
 	'users'   => [ 'min' => '5.0.0' ],
 ] );
+
+error_log( 'HEALTH DEBUG: after registerRequirements, mErrors='.json_encode( $gBitInstaller->mErrors ?? [] )
+	.' mRequirements[health]='.json_encode( $gBitInstaller->mRequirements['health'] ?? 'MISSING' ) );
 
 $tables = [
 	'health_hr_raw' => "
