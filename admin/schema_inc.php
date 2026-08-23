@@ -18,6 +18,16 @@
 
 global $gBitInstaller;
 
+// Never declared - a real gap (see project_installer_requirements memory), not just
+// cosmetic: liberty 5.0.2 specifically added the sort_order column liberty_xref_item
+// rows below rely on (see liberty/admin/upgrades/5.0.2.php) - every item registration
+// in this file has depended on that column since it was written, undeclared until now.
+$gBitInstaller->registerRequirements( HEALTH_PKG_NAME, [
+	'kernel'  => [ 'min' => '5.0.0' ],
+	'liberty' => [ 'min' => '5.0.2' ],
+	'users'   => [ 'min' => '5.0.0' ],
+] );
+
 $tables = [
 	'health_hr_raw' => "
 		start_time T PRIMARY,
