@@ -41,6 +41,7 @@ $columnTitles = [
 	'STEMP'  => [ 'Average (°C)', 'Low/High',         'Minute Detail' ],
 	'HRV'    => [ 'SDNN',         'RMSSD',            'Slot Detail' ],
 	'STEPTRACK' => [ 'Total Steps', 'Peak (10 min)', 'Day Track' ],
+	'RAISEDHR'  => [ 'Mins >=90bpm', 'Mins >=100bpm', 'Day Detail' ],
 ];
 
 $items = $gBitDb->getAll(

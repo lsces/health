@@ -14,5 +14,6 @@
 	<li><a class="item" href="{$smarty.const.HEALTH_PKG_URL}import/load_resp.php">{tr}Import RESP{/tr}</a></li>
 	<li><a class="item" href="{$smarty.const.HEALTH_PKG_URL}import/load_stemp.php">{tr}Import STEMP{/tr}</a></li>
 	<li><a class="item" href="{$smarty.const.HEALTH_PKG_URL}import/load_hrv.php">{tr}Import HRV{/tr}</a></li>
+	<li><a class="item" href="{$smarty.const.HEALTH_PKG_URL}import/load_raisedhr.php">{tr}Import RAISEDHR{/tr}</a></li>
 </ul>
 {/strip}

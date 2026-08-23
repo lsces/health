@@ -106,4 +106,10 @@ $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,
 // coarse daily total. See ImportStepTrack.php.
 $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPTRACK','healthday','vitals','Step Track',-1,11,3,'','value',NULL)";
 
+// RAISEDHR — one row per day (not per session - built against PULSE's
+// continuous background source deliberately, so a day with no logged
+// "exercise" still gets a real figure), minutes >=90/>=100bpm as the
+// co-equal headline pair. See ImportRaisedHR.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RAISEDHR','healthday','vitals','Raised HR',-1,12,3,'','value',NULL)";
+
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );
