@@ -61,84 +61,106 @@ $X = BIT_DB_PREFIX;
 $xrefTypes = [];
 $xrefItems = [];
 
-// ── healthday xref groups — one 'general' group for every item that isn't an
-// inherently-multi half-hour-slot item, plus one dedicated group each for
-// PULSE/RESP/STEMP/HRV (always half-hour slots by design, not just "happens
-// to have >1 row today"). Was a single 'vitals' group at sort_order=0 until
-// 5.0.3 — LibertyXrefType::loadContent() only ever loads groups with
-// sort_order > 0, so that group (and every item in it) was invisible to the
-// generic xref-group display framework (loadXrefInfo()/getXrefListTemplate(),
-// the same one food/stock/contact use) the whole time, not merely ungrouped.
-// See health/view_day.php's own docblock and admin/upgrades/5.0.3.php.
+// ── healthday xref groups — one dedicated group per item that can genuinely
+// carry more than one row on a given day (WT/BP/OXI - multiple real readings
+// - and PULSE/RESP/STEMP/HRV - always half-hour slots by design), plus one
+// 'general' group for the always-exactly-one-row-per-day items. Was a single
+// 'vitals' group at sort_order=0 until 5.0.3 — LibertyXrefType::loadContent()
+// only ever loads groups with sort_order > 0, so that group (and every item
+// in it) was invisible to the generic xref-group display framework
+// (loadXrefInfo()/getXrefListTemplate(), the same one food/stock/contact
+// use) the whole time, not merely ungrouped. See health/view_day.php's own
+// docblock and admin/upgrades/5.0.3.php.
 $xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('general','healthday','General',1,3,'','')";
-$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('pulse','healthday','Pulse',2,3,'','')";
-$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('resp','healthday','Respiratory Rate',3,3,'','')";
-$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('stemp','healthday','Skin Temperature',4,3,'','')";
-$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('hrv','healthday','Heart Rate Variability',5,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('wt','healthday','Weight',2,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('bp','healthday','Blood Pressure',3,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('oxi','healthday','Pulse Oximeter',4,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('pulse','healthday','Pulse',5,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('resp','healthday','Respiratory Rate',6,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('stemp','healthday','Skin Temperature',7,3,'','')";
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('hrv','healthday','Heart Rate Variability',8,3,'','')";
 
-// WT — weight (kg) + BMI, body composition (body_fat/water/muscle/bones) as a
-// json-list blob with a registered hint array, same convention as Food's FAT/VIT/MIN.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('WT','healthday','general','Weight',-1,0,3,'','json-list','[\"body_fat_pct\",\"water_pct\",\"muscle_pct\",\"bone_mass_kg\"]')";
+// WT — weight (kg) + BMI as xkey/xkey_ext, body composition (body_fat/water/
+// muscle/bones) as detail json. 'key-json-text' folds xkey/xkey_ext and the
+// decoded json into one titled "Key: val, Key: val..." list — plain 'json-list'
+// was dropping xkey/xkey_ext entirely, only 'value' was ever showing. `data`'s
+// first 2 array entries are the title-keys for xkey/xkey_ext (same auto-title
+// capitalize/underscore-strip as the real json field names that follow) — not
+// real data fields themselves, just borrowing the same hint-array column so the
+// view template can label xkey/xkey_ext to match. Convention applies to every
+// item below using 'key-json-text'.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('WT','healthday','wt','Weight',-1,0,3,'','key-json-text','[\"weight_kg\",\"bmi\",\"body_fat_pct\",\"water_pct\",\"muscle_pct\",\"bone_mass_kg\"]')";
 
-// BP — systolic/diastolic as the two co-equal headline values ('value' template,
-// same as liberty's own two-value case), pulse/map/source/comment/calibration_id
-// as detail json (calibration_id only present on Samsung watch-PPG rows).
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('BP','healthday','general','Blood Pressure',-1,1,3,'','value','[\"pulse\",\"map\",\"source\",\"comment\",\"calibration_id\"]')";
+// BP — systolic/diastolic as the two co-equal headline values, pulse/map/source/
+// comment/calibration_id as detail json (calibration_id only present on Samsung
+// watch-PPG rows). 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('BP','healthday','bp','Blood Pressure',-1,1,3,'','key-json-text','[\"systolic\",\"diastolic\",\"pulse\",\"map\",\"source\",\"comment\",\"calibration_id\"]')";
 
 // PULSE — one row per half-hour clock slot: xkey=slot average, xkey_ext=low/high
-// json, data=that slot's own minute-level bins as json. template='text' as a
-// placeholder (neither xkey_ext nor data here fit an existing generic template's
-// exact rendering — xkey_ext's own JSON isn't the json-list/json-text convention,
-// which only covers the data column) — revisit once an actual day view gets built.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('PULSE','healthday','pulse','Pulse',-1,2,3,'','text',NULL)";
+// json, data=that slot's own minute-level bins as json. 'key-json-detail':
+// xkey_ext is itself a json object ('{"low":..,"high":..}') — the template
+// auto-detects this (leading '{') and flattens it inline as titled Low/High
+// instead of treating it as a plain scalar; `data`'s per-minute detail is too
+// large to flatten, offered instead as a collapsible <details> block rather
+// than dumped inline. See WT above for the general item_data title convention
+// (here: [0]=xkey title, [1]=unused fallback since xkey_ext is always json,
+// [2]=label for the collapsible detail block).
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('PULSE','healthday','pulse','Pulse',-1,2,3,'','key-json-detail','[\"average\",\"low_high\",\"minute_detail\"]')";
 
-// OXI — finger-probe pulse oximeter, same 'value' shape as BP: SpO2 average +
-// Pulse as the two co-equal headline values, spo2_min/max as detail json.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('OXI','healthday','general','Pulse Oximeter',-1,3,3,'','value','[\"spo2_min\",\"spo2_max\"]')";
+// OXI — finger-probe pulse oximeter: SpO2 average + Pulse as the two co-equal
+// headline values, spo2_min/max as detail json. 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('OXI','healthday','oxi','Pulse Oximeter',-1,3,3,'','key-json-text','[\"spo2_avg\",\"pulse\",\"spo2_min\",\"spo2_max\"]')";
 
 // TEMP — plain scalar + text qualifier (Mode, e.g. "Ear temperature"), no
-// co-equal second value and nothing left over for a data json blob.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('TEMP','healthday','general','Temperature',-1,4,3,'','text',NULL)";
+// data json. 'value' template (Value=xkey, Notes=xkey_ext) keeps the two
+// separated instead of 'text''s unlabelled concatenation.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('TEMP','healthday','general','Temperature',-1,4,3,'','value',NULL)";
 
 // STEPS — steps + active minutes (derived from milliseconds) as the headline
 // pair, active kcal as detail json. No source found for the legacy
 // spreadsheet's "Exercise Raised HR" column — left out, see ImportSteps.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPS','healthday','general','Steps',-1,5,3,'','value','[\"active_kcal\"]')";
+// 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPS','healthday','general','Steps',-1,5,3,'','key-json-text','[\"step_count\",\"active_mins\",\"active_kcal\"]')";
 
 // ENERGY — Samsung's own vitality/readiness score + shrv_value (HRV), the
 // same row both ride along in — see ImportEnergy.php's docblock for why HRV
-// doesn't get its own item.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('ENERGY','healthday','general','Energy',-1,6,3,'','value','[\"shrv_score\",\"activity_score\",\"sleep_score\"]')";
+// doesn't get its own item. 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('ENERGY','healthday','general','Energy',-1,6,3,'','key-json-text','[\"total_score\",\"shrv_value\",\"shrv_score\",\"activity_score\",\"sleep_score\"]')";
 
 // SLEEP — one row per sleep *session*, not per day (multiple sessions/night
 // are real, see ImportSleep.php). sleep_score + duration as headline pair,
-// efficiency as detail.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('SLEEP','healthday','general','Sleep',-1,7,3,'','value','[\"efficiency\"]')";
+// efficiency as detail. 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('SLEEP','healthday','general','Sleep',-1,7,3,'','key-json-text','[\"sleep_score\",\"sleep_duration\",\"efficiency\"]')";
 
-// RESP — half-hour respiratory-rate slots, same 'text' placeholder shape as
-// PULSE (low/high json in xkey_ext doesn't fit an existing generic
-// template). See ImportRespiratoryRate.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RESP','healthday','resp','Respiratory Rate',-1,8,3,'','text',NULL)";
+// RESP — half-hour respiratory-rate slots, same shape as PULSE (xkey_ext
+// low/high json, data=per-reading detail). 'key-json-detail', see PULSE above.
+// See ImportRespiratoryRate.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RESP','healthday','resp','Respiratory Rate',-1,8,3,'','key-json-detail','[\"average\",\"low_high\",\"minute_detail\"]')";
 
-// STEMP — half-hour skin-temperature slots, same shape as RESP/PULSE. See
-// ImportSkinTemperature.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEMP','healthday','stemp','Skin Temperature',-1,9,3,'','text',NULL)";
+// STEMP — half-hour skin-temperature slots, same shape as RESP/PULSE.
+// 'key-json-detail', see PULSE above. See ImportSkinTemperature.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEMP','healthday','stemp','Skin Temperature',-1,9,3,'','key-json-detail','[\"average\",\"low_high\",\"minute_detail\"]')";
 
-// HRV — half-hour slots, sdnn+rmssd as the co-equal headline pair ('value'
-// template, unlike RESP/STEMP/PULSE's low/high-json xkey_ext). The richer
-// per-reading tier deferred in ImportEnergy.php's own docblock. See
-// ImportHRV.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('HRV','healthday','hrv','Heart Rate Variability',-1,10,3,'','value',NULL)";
+// HRV — half-hour slots, sdnn+rmssd as the co-equal headline pair (plain
+// scalars, unlike RESP/STEMP/PULSE's low/high-json xkey_ext), the richer
+// per-reading tier (sdnn/rmssd/start_time per beat window) as data — live,
+// not deferred as this comment previously said. 'key-json-detail': titled
+// xkey/xkey_ext, data offered as a collapsible block rather than flattened
+// (would be one line per reading otherwise). See ImportHRV.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('HRV','healthday','hrv','Heart Rate Variability',-1,10,3,'','key-json-detail','[\"sdnn\",\"rmssd\",\"slot_detail\"]')";
 
 // STEPTRACK — one row per day (not per slot), full 144-bin intraday step
-// track as data. Genuinely richer companion to STEPS, which only has the
-// coarse daily total. See ImportStepTrack.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPTRACK','healthday','general','Step Track',-1,11,3,'','value',NULL)";
+// track as data (array-of-objects, not a flat map — can't flatten inline).
+// Genuinely richer companion to STEPS, which only has the coarse daily
+// total. 'key-json-detail', see PULSE above: titled xkey/xkey_ext, data
+// offered as a collapsible block. See ImportStepTrack.php.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('STEPTRACK','healthday','general','Step Track',-1,11,3,'','key-json-detail','[\"total_steps\",\"peak_10min\",\"day_track\"]')";
 
 // RAISEDHR — one row per day (not per session - built against PULSE's
 // continuous background source deliberately, so a day with no logged
 // "exercise" still gets a real figure), minutes >=90/>=100bpm as the
-// co-equal headline pair. See ImportRaisedHR.php.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RAISEDHR','healthday','general','Raised HR',-1,12,3,'','value',NULL)";
+// co-equal headline pair, exercise/background split + hr_min/hr_max as
+// detail json. 'key-json-text', see WT above.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RAISEDHR','healthday','general','Raised HR',-1,12,3,'','key-json-text','[\"mins_90\",\"mins_100\",\"mins_130\",\"exercise_mins_90\",\"exercise_mins_100\",\"exercise_mins_130\",\"exercise_sample_count\",\"background_mins_90\",\"background_mins_100\",\"background_mins_130\",\"background_sample_count\",\"hr_min\",\"hr_max\"]')";
 
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );
