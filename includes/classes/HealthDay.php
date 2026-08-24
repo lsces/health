@@ -222,8 +222,12 @@ class HealthDay extends LibertyContent {
 	 * rebuild time, cheaper to read than decoding every PULSE slot's json
 	 * again for the same figure. Both fixed 2026-08-23.
 	 *
+	 * Steps is the bottom line, "Count: 8321, Mins: 45, Kcal: 320, Activity:
+	 * 78" via healthFormatStepsLine() (shared with the Summary tab so the
+	 * two agree) - added 2026-08-24.
+	 *
 	 * Returns '' (renders nothing, falls through to no tile) for a day with
-	 * none of WT/BP/RAISEDHR at all.
+	 * none of WT/BP/RAISEDHR/Steps at all.
 	 *
 	 * @param  array $pHash  The row from getContentList() — needs content_id/display_url.
 	 * @return string
@@ -244,7 +248,16 @@ class HealthDay extends LibertyContent {
 		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
 		$hasRaisedHr = is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] );
 
-		if( !$wt && !$bp && !$hasRaisedHr ) {
+		// Steps: same combined "Count/Mins/Kcal/Activity" line as the Summary
+		// tab (healthFormatStepsLine() - shared so the two always agree), as
+		// the tile's bottom line. Its presence also counts towards whether the
+		// tile renders at all - a step-only day (no WT/BP/RAISEDHR) shouldn't
+		// be hidden just because none of the *other* three have data.
+		$steps         = healthDaySummarySteps( $contentId );
+		$activityScore = healthDaySummaryEnergy( $contentId )['detail']['activity_score'] ?? null;
+		$stepsLine     = healthFormatStepsLine( $steps, $activityScore );
+
+		if( !$wt && !$bp && !$hasRaisedHr && !$stepsLine ) {
 			return '';
 		}
 
@@ -269,6 +282,10 @@ class HealthDay extends LibertyContent {
 
 		if( $hasRaisedHr ) {
 			$lines[] = sprintf( '%d–%d bpm', $raisedHr['hr_min'], $raisedHr['hr_max'] );
+		}
+
+		if( $stepsLine ) {
+			$lines[] = $stepsLine;
 		}
 
 		$body = implode( '<br/>', array_map( 'htmlspecialchars', $lines ) );

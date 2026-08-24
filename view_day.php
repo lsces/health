@@ -84,13 +84,27 @@ if( $bp ) {
 	}
 }
 
-$gBitSmarty->assign( 'gContent',   $gContent );
-$gBitSmarty->assign( 'gXrefInfo',  $gContent->mXrefInfo );
-$gBitSmarty->assign( 'wtSummary',  healthDaySummaryWT( $contentId ) );
-$gBitSmarty->assign( 'bpCount',    $bp['count'] ?? 0 );
-$gBitSmarty->assign( 'bpLine',     $bpLine );
-$gBitSmarty->assign( 'bpSlots',    $bpSlots );
-$gBitSmarty->assign( 'hrMin',      $raisedHr['hr_min'] ?? null );
-$gBitSmarty->assign( 'hrMax',      $raisedHr['hr_max'] ?? null );
+// Energy/Sleep/HRV/Steps: ENERGY turns out to be the richest single source
+// for four of these rows, not just its own line - total_score->Energy,
+// shrv_value->HRV, and detail's sleep_score/activity_score feed the
+// Sleep/Steps lines instead of SLEEP's own per-session scores or a bare
+// Activity row (Lester's own framing, 2026-08-24). See
+// healthFormatSleepLine()/healthFormatStepsLine() docblocks for the reasoning.
+$energy   = healthDaySummaryEnergy( $contentId );
+$steps    = healthDaySummarySteps( $contentId );
+$sleepSessions = healthDaySummarySleep( $contentId );
+
+$gBitSmarty->assign( 'gContent',    $gContent );
+$gBitSmarty->assign( 'gXrefInfo',   $gContent->mXrefInfo );
+$gBitSmarty->assign( 'wtSummary',   healthDaySummaryWT( $contentId ) );
+$gBitSmarty->assign( 'bpCount',     $bp['count'] ?? 0 );
+$gBitSmarty->assign( 'bpLine',      $bpLine );
+$gBitSmarty->assign( 'bpSlots',     $bpSlots );
+$gBitSmarty->assign( 'hrMin',       $raisedHr['hr_min'] ?? null );
+$gBitSmarty->assign( 'hrMax',       $raisedHr['hr_max'] ?? null );
+$gBitSmarty->assign( 'energyLine',  isset( $energy['total_score'] ) ? healthFormatNumber( $energy['total_score'] ) : null );
+$gBitSmarty->assign( 'hrvLine',     isset( $energy['shrv_value'] )  ? healthFormatNumber( $energy['shrv_value'] )  : null );
+$gBitSmarty->assign( 'sleepLine',   healthFormatSleepLine( $energy['detail']['sleep_score'] ?? null, $sleepSessions ) );
+$gBitSmarty->assign( 'stepsLine',   healthFormatStepsLine( $steps, $energy['detail']['activity_score'] ?? null ) );
 
 $gBitSystem->display( 'bitpackage:health/view_day.tpl', KernelTools::tra( 'Day' ).': '.$gContent->getTitle() );

@@ -153,15 +153,36 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 }
 
 /**
+ * "12" not "12.0"/"12.3400" - one decimal place, trailing zeros (and a
+ * trailing bare dot) trimmed off. Shared by every formatter below that
+ * needs a single figure displayed, not just healthFormatRange()'s ranges.
+ */
+function healthFormatNumber( float $pVal ): string {
+	return rtrim( rtrim( number_format( $pVal, 1 ), '0' ), '.' );
+}
+
+/**
  * "12" if $pMin/$pMax are equal (a single reading, or a slot average - no
  * real range to show), else "12–18" - shared formatting for BP's day-wide
  * range and used wherever else a min/max pair needs the same collapse-if-
  * equal treatment.
  */
 function healthFormatRange( float $pMin, float $pMax ): string {
-	$fmtMin = rtrim( rtrim( number_format( $pMin, 1 ), '0' ), '.' );
-	$fmtMax = rtrim( rtrim( number_format( $pMax, 1 ), '0' ), '.' );
+	$fmtMin = healthFormatNumber( $pMin );
+	$fmtMax = healthFormatNumber( $pMax );
 	return $fmtMin === $fmtMax ? $fmtMin : "$fmtMin\u{2013}$fmtMax";
+}
+
+/**
+ * "6h 32m" (or "32m" under an hour) - not meant to be precise, just
+ * readable; see healthFormatSleepLine()'s own docblock for why an
+ * imprecise summed duration is good enough here.
+ */
+function healthFormatDuration( float $pMinutes ): string {
+	$mins = (int)round( $pMinutes );
+	$h = intdiv( $mins, 60 );
+	$m = $mins % 60;
+	return $h > 0 ? sprintf( '%dh %dm', $h, $m ) : sprintf( '%dm', $m );
 }
 
 /**
@@ -208,11 +229,39 @@ function healthDaySummaryHRV( int $pContentId ): ?array {
 }
 
 /**
+ * "Score: 78, Duration: 6h 32m (2 sessions)" - the Summary tab's Sleep
+ * line. Score comes from ENERGY's own `sleep_score` (vitality_score's
+ * composite figure), NOT a pick/blend of SLEEP's own per-session scores -
+ * Lester's own call: the SLEEP item's sessions record different, sometimes
+ * overlapping periods through the night and their scores "aren't totally
+ * reliable" as a single day figure. Duration IS still built from the real
+ * SLEEP sessions though - summed across however many exist that day, even
+ * though summing overlapping/adjacent sessions isn't strictly accurate
+ * either - Lester's own explicit acceptance ("even if it isn't accurate")
+ * of a rough duration over no duration at all. Returns null if there's
+ * neither an ENERGY sleep_score nor any SLEEP session that day.
+ */
+function healthFormatSleepLine( ?float $pSleepScore, array $pSleepSessions ): ?string {
+	$parts = [];
+	if( $pSleepScore !== null ) {
+		$parts[] = 'Score: '.healthFormatNumber( $pSleepScore );
+	}
+	if( $pSleepSessions ) {
+		$totalMinutes = array_sum( array_column( $pSleepSessions, 'duration_minutes' ) );
+		$n = count( $pSleepSessions );
+		$parts[] = 'Duration: '.healthFormatDuration( $totalMinutes ).' ('.$n.' '.( $n === 1 ? 'session' : 'sessions' ).')';
+	}
+	return $parts ? implode( ', ', $parts ) : null;
+}
+
+/**
  * SLEEP day-summary: every session that day, since a night can genuinely
  * have several (see ImportSleep.php's own docblock) - picking/aggregating
  * a single headline figure from multiple real sessions is a display
- * decision, not made here. Returns every session's own score/duration/
- * efficiency, longest-duration first.
+ * decision, not made here (see healthFormatSleepLine() for the Summary
+ * tab's own reduction, which uses ENERGY's score instead of these anyway).
+ * Returns every session's own score/duration/efficiency, longest-duration
+ * first.
  *
  * @return array<int, array{score:float,duration_minutes:float,efficiency:?float}>
  */
@@ -238,6 +287,13 @@ function healthDaySummarySleep( int $pContentId ): array {
 /**
  * ENERGY day-summary: already one row per day at import time (see
  * ImportEnergy.php), so this is just a plain fetch, no reduction needed.
+ * Its four figures cover the Summary tab's best answer for four different
+ * rows, not just its own "Energy" line (Lester's own framing, 2026-08-24):
+ * `total_score` is Energy, `shrv_value` is HRV, and `detail`'s
+ * `sleep_score`/`activity_score` feed the Sleep/Steps lines respectively
+ * (see healthFormatSleepLine()/healthFormatStepsLine()) - ENERGY turns out
+ * to be the richest single source for day-level headline figures, even for
+ * items that also have their own dedicated xref item.
  *
  * @return array{total_score:float,shrv_value:float,detail:array}|null
  */
@@ -257,4 +313,51 @@ function healthDaySummaryEnergy( int $pContentId ): ?array {
 		'shrv_value'  => (float)$row['xkey_ext'],
 		'detail'      => json_decode( (string)$row['data'], true ) ?: [],
 	];
+}
+
+/**
+ * STEPS day-summary: already one row per day at import time (see
+ * ImportSteps.php), so this is just a plain fetch, no reduction needed.
+ *
+ * @return array{count:int,active_mins:float,active_kcal:float}|null
+ */
+function healthDaySummarySteps( int $pContentId ): ?array {
+	global $gBitDb;
+	$row = $gBitDb->getRow(
+		"SELECT `xkey`, `xkey_ext`, `data` FROM `".BIT_DB_PREFIX."liberty_xref`
+			WHERE `content_id` = ? AND `item` = 'STEPS'",
+		[ $pContentId ]
+	);
+	if( !$row ) {
+		return null;
+	}
+	$detail = json_decode( (string)$row['data'], true ) ?: [];
+
+	return [
+		'count'       => (int)$row['xkey'],
+		'active_mins' => (float)$row['xkey_ext'],
+		'active_kcal' => (float)( $detail['active_kcal'] ?? 0 ),
+	];
+}
+
+/**
+ * "Count: 8321, Mins: 45, Kcal: 320, Activity: 78" - Steps' own count/
+ * active-mins/active-kcal plus ENERGY's activity_score folded onto the
+ * same line, rather than Activity getting a row of its own - Lester's own
+ * call, 2026-08-24. Either half can be missing (a day with STEPS but no
+ * ENERGY row, or vice versa) - whichever parts exist are shown, nothing
+ * shown as zero. Returns null if there's nothing at all to show. Shared by
+ * both the Summary tab and the Calendar day-cell, so the two always agree.
+ */
+function healthFormatStepsLine( ?array $pSteps, ?float $pActivityScore ): ?string {
+	$parts = [];
+	if( $pSteps ) {
+		$parts[] = 'Count: '.number_format( $pSteps['count'] );
+		$parts[] = 'Mins: '.healthFormatNumber( $pSteps['active_mins'] );
+		$parts[] = 'Kcal: '.healthFormatNumber( $pSteps['active_kcal'] );
+	}
+	if( $pActivityScore !== null ) {
+		$parts[] = 'Activity: '.healthFormatNumber( $pActivityScore );
+	}
+	return $parts ? implode( ', ', $parts ) : null;
 }

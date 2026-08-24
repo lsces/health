@@ -28,7 +28,19 @@
 						{if $hrMin !== null}
 							<tr><td>{tr}Pulse Range{/tr}</td><td>{$hrMin}&ndash;{$hrMax} bpm</td></tr>
 						{/if}
-						{if !$wtSummary && !$bpCount && $hrMin === null}
+						{if $energyLine}
+							<tr><td>{tr}Energy{/tr}</td><td>{$energyLine|escape}</td></tr>
+						{/if}
+						{if $sleepLine}
+							<tr><td>{tr}Sleep{/tr}</td><td>{$sleepLine|escape}</td></tr>
+						{/if}
+						{if $hrvLine}
+							<tr><td>{tr}HRV{/tr}</td><td>{$hrvLine|escape}</td></tr>
+						{/if}
+						{if $stepsLine}
+							<tr><td>{tr}Steps{/tr}</td><td>{$stepsLine|escape}</td></tr>
+						{/if}
+						{if !$wtSummary && !$bpCount && $hrMin === null && !$energyLine && !$sleepLine && !$hrvLine && !$stepsLine}
 							<tr><td colspan="2">{tr}Nothing to summarise for this day yet.{/tr}</td></tr>
 						{/if}
 					</tbody>
