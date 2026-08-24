@@ -200,6 +200,13 @@ class HealthDay extends LibertyContent {
 	 * span normal daily fluctuation or multiple same-session re-weighs, not a
 	 * meaningful "today's weight" figure.
 	 *
+	 * BP shows the day's real sys/dia(/pulse) range - "138/85 (68)" for a
+	 * single reading, "125–140/78–92 (60–75)" once there's more than one -
+	 * via healthDaySummaryBP()/healthFormatBPLine(), not a bare reading
+	 * count. A day with zero BP readings shows no BP line at all (fixed
+	 * 2026-08-24, see HealthDaySummary.php's own docblock for the slot
+	 * breakdown this shares its formatting with).
+	 *
 	 * Pulse range comes from RAISEDHR's own cached `hr_min`/`hr_max` (see
 	 * RebuildHRDerived.php's healthRebuildDayRaisedHR(), one row per day) —
 	 * not a PULSE scan. First fix here read PULSE's own `xkey_ext` per slot
@@ -224,10 +231,6 @@ class HealthDay extends LibertyContent {
 
 		require_once __DIR__.'/../HealthDaySummary.php';
 
-		$bpCount = (int)$gBitDb->getOne(
-			"SELECT COUNT(*) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
-			[ $contentId ]
-		);
 		$raisedHrData = $gBitDb->getOne(
 			"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
 			[ $contentId ]
@@ -239,8 +242,14 @@ class HealthDay extends LibertyContent {
 		if( $wt ) {
 			$lines[] = sprintf( '%.1fkg', $wt['weight'] );
 		}
-		if( $bpCount ) {
-			$lines[] = $bpCount === 1 ? '1 BP' : "$bpCount BP";
+
+		$bp = healthDaySummaryBP( $contentId );
+		if( $bp ) {
+			$lines[] = healthFormatBPLine(
+				$bp['systolic']['min'], $bp['systolic']['max'],
+				$bp['diastolic']['min'], $bp['diastolic']['max'],
+				$bp['pulse']['min'] ?? null, $bp['pulse']['max'] ?? null
+			);
 		}
 
 		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;

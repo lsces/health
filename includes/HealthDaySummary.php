@@ -69,37 +69,114 @@ function healthDaySummaryWT( int $pContentId ): ?array {
 }
 
 /**
- * BP day-summary: average/min/max systolic and diastolic across every
+ * BP day-summary: min/max/avg systolic, diastolic and pulse across every
  * reading that day - no AM/PM or source filtering, every BP reading
  * (HealthForYou + both Samsung sources) is already imported into the same
- * pool, see ImportBPSamsung.php's own docblock.
+ * pool, see ImportBPSamsung.php's own docblock. Pulse lives in the `data`
+ * json (not a plain column), so fetched raw and reduced in PHP rather than
+ * via SQL aggregates - row counts per day are small (a handful), matching
+ * the same all-rows-in-PHP approach healthDaySummaryWT() already uses.
+ *
+ * Also splits the day into three fixed local-time slots - pre-9AM
+ * ('morning'), 9AM-4PM ('midday', normally sparse - Lester's post-physio
+ * readings are the main real case), post-4PM ('evening') - each reduced to
+ * its own average, not a range (a slot's whole point is "one representative
+ * figure for that part of the day", unlike the day-wide min/max which is
+ * meant to show the real spread). A slot with no readings that day is null,
+ * not zeroed - the caller decides whether to render it at all.
  *
  * @return array{systolic:array{avg:float,min:float,max:float},
- *               diastolic:array{avg:float,min:float,max:float},count:int}|null
+ *               diastolic:array{avg:float,min:float,max:float},
+ *               pulse:?array{avg:float,min:float,max:float},
+ *               count:int,
+ *               slots:array<string,?array{systolic:float,diastolic:float,pulse:?float,count:int}>}|null
  */
 function healthDaySummaryBP( int $pContentId ): ?array {
 	global $gBitDb;
-	$row = $gBitDb->getRow(
-		"SELECT
-			AVG(CAST(`xkey` AS DOUBLE PRECISION))     AS sys_avg,
-			MIN(CAST(`xkey` AS DOUBLE PRECISION))     AS sys_min,
-			MAX(CAST(`xkey` AS DOUBLE PRECISION))     AS sys_max,
-			AVG(CAST(`xkey_ext` AS DOUBLE PRECISION)) AS dia_avg,
-			MIN(CAST(`xkey_ext` AS DOUBLE PRECISION)) AS dia_min,
-			MAX(CAST(`xkey_ext` AS DOUBLE PRECISION)) AS dia_max,
-			COUNT(*) AS n
-		 FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
+	$rows = $gBitDb->getAll(
+		"SELECT `xkey`, `xkey_ext`, `data`, `start_date` FROM `".BIT_DB_PREFIX."liberty_xref`
+			WHERE `content_id` = ? AND `item` = 'BP'",
 		[ $pContentId ]
 	);
-	if( !$row || !$row['n'] ) {
+	if( !$rows ) {
 		return null;
 	}
 
+	$tz = new \DateTimeZone( 'Europe/London' );
+	$slotRows = [ 'morning' => [], 'midday' => [], 'evening' => [] ];
+	$sys = [];
+	$dia = [];
+	$pulse = [];
+
+	foreach( $rows as $row ) {
+		$s = (float)$row['xkey'];
+		$d = (float)$row['xkey_ext'];
+		$detail = json_decode( (string)$row['data'], true ) ?: [];
+		$p = isset( $detail['pulse'] ) && $detail['pulse'] !== '' ? (float)$detail['pulse'] : null;
+
+		$sys[] = $s;
+		$dia[] = $d;
+		if( $p !== null ) {
+			$pulse[] = $p;
+		}
+
+		$local = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+		$hour  = (int)$local->format( 'H' );
+		$slot  = $hour < 9 ? 'morning' : ( $hour < 16 ? 'midday' : 'evening' );
+		$slotRows[$slot][] = [ 'sys' => $s, 'dia' => $d, 'pulse' => $p ];
+	}
+
+	$avg = fn( array $v ) => $v ? array_sum( $v ) / count( $v ) : null;
+
+	$slots = [];
+	foreach( $slotRows as $slot => $readings ) {
+		if( !$readings ) {
+			$slots[$slot] = null;
+			continue;
+		}
+		$slotPulse = array_values( array_filter( array_column( $readings, 'pulse' ), fn( $v ) => $v !== null ) );
+		$slots[$slot] = [
+			'systolic'  => round( $avg( array_column( $readings, 'sys' ) ), 1 ),
+			'diastolic' => round( $avg( array_column( $readings, 'dia' ) ), 1 ),
+			'pulse'     => $slotPulse ? round( $avg( $slotPulse ), 1 ) : null,
+			'count'     => count( $readings ),
+		];
+	}
+
 	return [
-		'systolic'  => [ 'avg' => round( (float)$row['sys_avg'], 1 ), 'min' => (float)$row['sys_min'], 'max' => (float)$row['sys_max'] ],
-		'diastolic' => [ 'avg' => round( (float)$row['dia_avg'], 1 ), 'min' => (float)$row['dia_min'], 'max' => (float)$row['dia_max'] ],
-		'count'     => (int)$row['n'],
+		'systolic'  => [ 'avg' => round( $avg( $sys ), 1 ), 'min' => min( $sys ), 'max' => max( $sys ) ],
+		'diastolic' => [ 'avg' => round( $avg( $dia ), 1 ), 'min' => min( $dia ), 'max' => max( $dia ) ],
+		'pulse'     => $pulse ? [ 'avg' => round( $avg( $pulse ), 1 ), 'min' => min( $pulse ), 'max' => max( $pulse ) ] : null,
+		'count'     => count( $rows ),
+		'slots'     => $slots,
 	];
+}
+
+/**
+ * "12" if $pMin/$pMax are equal (a single reading, or a slot average - no
+ * real range to show), else "12–18" - shared formatting for BP's day-wide
+ * range and used wherever else a min/max pair needs the same collapse-if-
+ * equal treatment.
+ */
+function healthFormatRange( float $pMin, float $pMax ): string {
+	$fmtMin = rtrim( rtrim( number_format( $pMin, 1 ), '0' ), '.' );
+	$fmtMax = rtrim( rtrim( number_format( $pMax, 1 ), '0' ), '.' );
+	return $fmtMin === $fmtMax ? $fmtMin : "$fmtMin\u{2013}$fmtMax";
+}
+
+/**
+ * "132/84 (68)" or "125–140/78–92 (60–75)" - one BP line covering systolic/
+ * diastolic (+ pulse if present), built from either healthDaySummaryBP()'s
+ * top-level min/max (a real range across the day) or one of its per-slot
+ * averages (single figures, passed as $pMin===$pMax so healthFormatRange()
+ * collapses to one number) - same renderer, two calling shapes.
+ */
+function healthFormatBPLine( float $pSysMin, float $pSysMax, float $pDiaMin, float $pDiaMax, ?float $pPulseMin = null, ?float $pPulseMax = null ): string {
+	$line = healthFormatRange( $pSysMin, $pSysMax ).'/'.healthFormatRange( $pDiaMin, $pDiaMax );
+	if( $pPulseMin !== null && $pPulseMax !== null ) {
+		$line .= ' ('.healthFormatRange( $pPulseMin, $pPulseMax ).')';
+	}
+	return $line;
 }
 
 /**

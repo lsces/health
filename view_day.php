@@ -50,20 +50,46 @@ $gContent->loadXrefInfo();
 
 require_once __DIR__.'/includes/HealthDaySummary.php';
 
-$bpCount = (int)$gBitDb->getOne(
-	"SELECT COUNT(*) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
-	[ $contentId ]
-);
 $raisedHrData = $gBitDb->getOne(
 	"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
 	[ $contentId ]
 );
 $raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
 
+// BP: day-wide range line (same figure the calendar tile shows), plus the
+// three fixed time-slot averages (morning/midday/evening) - see
+// HealthDaySummary.php's healthDaySummaryBP() docblock for why these are
+// averages, not ranges, and why midday is normally sparse (post-physio
+// readings are the real case). Slot labels/order fixed here rather than
+// looping $bp['slots'] keys, since the template needs a human label per key.
+$bp = healthDaySummaryBP( $contentId );
+$bpLine  = null;
+$bpSlots = [];
+if( $bp ) {
+	$bpLine = healthFormatBPLine(
+		$bp['systolic']['min'], $bp['systolic']['max'],
+		$bp['diastolic']['min'], $bp['diastolic']['max'],
+		$bp['pulse']['min'] ?? null, $bp['pulse']['max'] ?? null
+	);
+	$slotLabels = [ 'morning' => KernelTools::tra( 'Morning' ), 'midday' => KernelTools::tra( 'Midday' ), 'evening' => KernelTools::tra( 'Evening' ) ];
+	foreach( $slotLabels as $key => $label ) {
+		$slot = $bp['slots'][$key];
+		if( !$slot ) {
+			continue;
+		}
+		$bpSlots[] = [
+			'label' => $label,
+			'line'  => healthFormatBPLine( $slot['systolic'], $slot['systolic'], $slot['diastolic'], $slot['diastolic'], $slot['pulse'], $slot['pulse'] ),
+		];
+	}
+}
+
 $gBitSmarty->assign( 'gContent',   $gContent );
 $gBitSmarty->assign( 'gXrefInfo',  $gContent->mXrefInfo );
 $gBitSmarty->assign( 'wtSummary',  healthDaySummaryWT( $contentId ) );
-$gBitSmarty->assign( 'bpCount',    $bpCount );
+$gBitSmarty->assign( 'bpCount',    $bp['count'] ?? 0 );
+$gBitSmarty->assign( 'bpLine',     $bpLine );
+$gBitSmarty->assign( 'bpSlots',    $bpSlots );
 $gBitSmarty->assign( 'hrMin',      $raisedHr['hr_min'] ?? null );
 $gBitSmarty->assign( 'hrMax',      $raisedHr['hr_max'] ?? null );
 
