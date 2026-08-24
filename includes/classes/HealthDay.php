@@ -12,6 +12,7 @@
  */
 namespace Bitweaver\Health;
 
+use Bitweaver\KernelTools;
 use Bitweaver\Liberty\LibertyContent;
 
 defined( 'HEALTHDAY_CONTENT_TYPE_GUID' ) || define( 'HEALTHDAY_CONTENT_TYPE_GUID', 'healthday' );
@@ -203,9 +204,11 @@ class HealthDay extends LibertyContent {
 	 * BP shows the day's real sys/dia(/pulse) range - "138/85 (68)" for a
 	 * single reading, "125–140/78–92 (60–75)" once there's more than one -
 	 * via healthDaySummaryBP()/healthFormatBPLine(), not a bare reading
-	 * count. A day with zero BP readings shows no BP line at all (fixed
-	 * 2026-08-24, see HealthDaySummary.php's own docblock for the slot
-	 * breakdown this shares its formatting with).
+	 * count (fixed 2026-08-24, see HealthDaySummary.php's own docblock for
+	 * the slot breakdown this shares its formatting with). A day with zero
+	 * BP readings still gets a "No BP records" line, not an omitted row -
+	 * Lester's own call, so every rendered tile keeps the same line count/
+	 * layout rather than BP-free days looking shorter (fixed same day).
 	 *
 	 * Pulse range comes from RAISEDHR's own cached `hr_min`/`hr_max` (see
 	 * RebuildHRDerived.php's healthRebuildDayRaisedHR(), one row per day) —
@@ -236,29 +239,36 @@ class HealthDay extends LibertyContent {
 			[ $contentId ]
 		);
 
+		$wt       = healthDaySummaryWT( $contentId );
+		$bp       = healthDaySummaryBP( $contentId );
+		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
+		$hasRaisedHr = is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] );
+
+		if( !$wt && !$bp && !$hasRaisedHr ) {
+			return '';
+		}
+
 		$lines = [];
 
-		$wt = healthDaySummaryWT( $contentId );
 		if( $wt ) {
 			$lines[] = sprintf( '%.1fkg', $wt['weight'] );
 		}
 
-		$bp = healthDaySummaryBP( $contentId );
-		if( $bp ) {
-			$lines[] = healthFormatBPLine(
+		// Always a BP line once the tile is rendering at all - "No BP records"
+		// rather than just omitting the row, so every tile keeps the same
+		// line count/layout instead of shorter tiles on BP-free days. Only a
+		// completely empty day (no WT/BP/RAISEDHR at all) skips the tile
+		// entirely, per the early return above.
+		$lines[] = $bp
+			? healthFormatBPLine(
 				$bp['systolic']['min'], $bp['systolic']['max'],
 				$bp['diastolic']['min'], $bp['diastolic']['max'],
 				$bp['pulse']['min'] ?? null, $bp['pulse']['max'] ?? null
-			);
-		}
+			)
+			: KernelTools::tra( 'No BP records' );
 
-		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
-		if( is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] ) ) {
+		if( $hasRaisedHr ) {
 			$lines[] = sprintf( '%d–%d bpm', $raisedHr['hr_min'], $raisedHr['hr_max'] );
-		}
-
-		if( !$lines ) {
-			return '';
 		}
 
 		$body = implode( '<br/>', array_map( 'htmlspecialchars', $lines ) );
