@@ -222,9 +222,10 @@ class HealthDay extends LibertyContent {
 	 * rebuild time, cheaper to read than decoding every PULSE slot's json
 	 * again for the same figure. Both fixed 2026-08-23.
 	 *
-	 * Steps is the bottom line, "Count: 8321, Mins: 45, Kcal: 320, Activity:
-	 * 78" via healthFormatStepsLine() (shared with the Summary tab so the
-	 * two agree) - added 2026-08-24.
+	 * Steps is the bottom line, "Step: 8,321, 45m, 320K" via the compact
+	 * healthFormatStepsLineCompact() - deliberately not the same, fuller
+	 * line the Summary tab shows (that one keeps Activity and field-name
+	 * prefixes; this one dropped them, 2026-08-24, to fit one line here).
 	 *
 	 * Returns '' (renders nothing, falls through to no tile) for a day with
 	 * none of WT/BP/RAISEDHR/Steps at all.
@@ -248,14 +249,15 @@ class HealthDay extends LibertyContent {
 		$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
 		$hasRaisedHr = is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] );
 
-		// Steps: same combined "Count/Mins/Kcal/Activity" line as the Summary
-		// tab (healthFormatStepsLine() - shared so the two always agree), as
-		// the tile's bottom line. Its presence also counts towards whether the
-		// tile renders at all - a step-only day (no WT/BP/RAISEDHR) shouldn't
-		// be hidden just because none of the *other* three have data.
-		$steps         = healthDaySummarySteps( $contentId );
-		$activityScore = healthDaySummaryEnergy( $contentId )['detail']['activity_score'] ?? null;
-		$stepsLine     = healthFormatStepsLine( $steps, $activityScore );
+		// Steps: compact "Step: 8,321, 45m, 320K" bottom line (no Activity,
+		// no field-name prefixes on Mins/Kcal - Lester's own trim, 2026-08-24,
+		// specifically to keep it to one line on the cell; see
+		// healthFormatStepsLineCompact()'s own docblock). Its presence also
+		// counts towards whether the tile renders at all - a step-only day
+		// (no WT/BP/RAISEDHR) shouldn't be hidden just because none of the
+		// *other* three have data.
+		$steps     = healthDaySummarySteps( $contentId );
+		$stepsLine = healthFormatStepsLineCompact( $steps );
 
 		if( !$wt && !$bp && !$hasRaisedHr && !$stepsLine ) {
 			return '';

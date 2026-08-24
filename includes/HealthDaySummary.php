@@ -341,13 +341,31 @@ function healthDaySummarySteps( int $pContentId ): ?array {
 }
 
 /**
- * "Count: 8321, Mins: 45, Kcal: 320, Activity: 78" - Steps' own count/
- * active-mins/active-kcal plus ENERGY's activity_score folded onto the
- * same line, rather than Activity getting a row of its own - Lester's own
- * call, 2026-08-24. Either half can be missing (a day with STEPS but no
- * ENERGY row, or vice versa) - whichever parts exist are shown, nothing
- * shown as zero. Returns null if there's nothing at all to show. Shared by
- * both the Summary tab and the Calendar day-cell, so the two always agree.
+ * "Step: 8,321, 45m, 320K" - Calendar day-cell's compact Steps line (added
+ * 2026-08-24, Lester's own trim): count/active-mins/active-kcal only, no
+ * Activity (that stays Summary-tab-only, see healthFormatStepsLine()) and
+ * no field labels beyond "Step:" - "m"/"K" suffixed straight onto the
+ * number instead of "Mins:"/"Kcal:" prefixes, specifically so the whole
+ * line fits on the cell's one remaining row. Returns null (no line at all)
+ * if there's no STEPS row that day.
+ */
+function healthFormatStepsLineCompact( ?array $pSteps ): ?string {
+	if( !$pSteps ) {
+		return null;
+	}
+	return 'Step: '.number_format( $pSteps['count'] ).', '.healthFormatNumber( $pSteps['active_mins'] ).'m, '.healthFormatNumber( $pSteps['active_kcal'] ).'K';
+}
+
+/**
+ * "Count: 8321, Mins: 45, Kcal: 320, Activity: 78" - Summary tab's fuller
+ * Steps line: Steps' own count/active-mins/active-kcal plus ENERGY's
+ * activity_score folded onto the same line, rather than Activity getting a
+ * row of its own - Lester's own call, 2026-08-24. Either half can be
+ * missing (a day with STEPS but no ENERGY row, or vice versa) - whichever
+ * parts exist are shown, nothing shown as zero. Returns null if there's
+ * nothing at all to show. The Calendar day-cell uses the more compact
+ * healthFormatStepsLineCompact() instead, not this one - the two
+ * deliberately don't match once the tile got trimmed down.
  */
 function healthFormatStepsLine( ?array $pSteps, ?float $pActivityScore ): ?string {
 	$parts = [];
