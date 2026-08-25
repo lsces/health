@@ -71,8 +71,11 @@ foreach( $days as $day ) {
 	];
 }
 
-$gBitSmarty->assign( 'rows', $rows );
-$gBitSmarty->assign( 'from', $from );
-$gBitSmarty->assign( 'to',   $to );
+$rangeBP = healthRangeSummaryBP( $from, $to );
+
+$gBitSmarty->assign( 'rows',    $rows );
+$gBitSmarty->assign( 'from',    $from );
+$gBitSmarty->assign( 'to',      $to );
+$gBitSmarty->assign( 'rangeBP', $rangeBP );
 
 $gBitSystem->display( 'bitpackage:health/report_range.tpl', KernelTools::tra( 'Health Report' ) );

@@ -153,6 +153,53 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 }
 
 /**
+ * BP average across every reading between two dates (inclusive), not
+ * per-day - what a doctor actually asks for is "average BP for the
+ * week", not a daily breakdown. Deliberately a straight mean over
+ * however many raw readings actually exist in the range, not divided by
+ * an assumed reading count (2/day, 14/week) - most historical weeks
+ * won't have a full set, and a plain average already handles a partial
+ * week correctly without special-casing it. `count` is returned
+ * specifically so the caller can show how many readings the average is
+ * actually based on, e.g. "8 readings" rather than implying a full week.
+ *
+ * @param  string $pFrom  ISO date, inclusive.
+ * @param  string $pTo    ISO date, inclusive.
+ * @return array{systolic:float,diastolic:float,pulse:?float,count:int}|null
+ */
+function healthRangeSummaryBP( string $pFrom, string $pTo ): ?array {
+	global $gBitDb;
+	$rows = $gBitDb->getAll(
+		"SELECT x.`xkey`, x.`xkey_ext`, x.`data` FROM `".BIT_DB_PREFIX."liberty_xref` x
+			JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
+			WHERE lc.`content_type_guid` = 'healthday' AND x.`item` = 'BP'
+			  AND lc.`title` BETWEEN ? AND ?",
+		[ $pFrom, $pTo ]
+	);
+	if( !$rows ) {
+		return null;
+	}
+
+	$sys = $dia = $pulse = [];
+	foreach( $rows as $row ) {
+		$sys[] = (float)$row['xkey'];
+		$dia[] = (float)$row['xkey_ext'];
+		$detail = json_decode( (string)$row['data'], true ) ?: [];
+		if( isset( $detail['pulse'] ) && $detail['pulse'] !== '' ) {
+			$pulse[] = (float)$detail['pulse'];
+		}
+	}
+	$avg = fn( array $v ) => array_sum( $v ) / count( $v );
+
+	return [
+		'systolic'  => round( $avg( $sys ), 1 ),
+		'diastolic' => round( $avg( $dia ), 1 ),
+		'pulse'     => $pulse ? round( $avg( $pulse ), 1 ) : null,
+		'count'     => count( $rows ),
+	];
+}
+
+/**
  * "12" not "12.0"/"12.3400" - one decimal place, trailing zeros (and a
  * trailing bare dot) trimmed off. Shared by every formatter below that
  * needs a single figure displayed, not just healthFormatRange()'s ranges.

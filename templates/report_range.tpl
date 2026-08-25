@@ -19,6 +19,13 @@
 
 		<h2>{$from|bit_short_date} &ndash; {$to|bit_short_date}</h2>
 
+		{if $rangeBP}
+			<p><strong>{tr}Average BP for this period{/tr}:</strong>
+				{$rangeBP.systolic}/{$rangeBP.diastolic}{if $rangeBP.pulse} ({$rangeBP.pulse}){/if}
+				&mdash; {$rangeBP.count} {if $rangeBP.count eq 1}{tr}reading{/tr}{else}{tr}readings{/tr}{/if}
+			</p>
+		{/if}
+
 		{if $rows}
 			<table class="table table-condensed table-bordered">
 				<thead>
