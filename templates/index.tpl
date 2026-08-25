@@ -26,7 +26,7 @@
 		</form>
 
 		{if $healthForYouRows}
-			<h2>{tr}HealthForYou{/tr}</h2>
+			<h2>{tr}HealthForYou{/tr}{if $healthForYouLast} &mdash; {tr}Last Download{/tr}: {$healthForYouLast|bit_short_date}{/if}</h2>
 			<table class="table table-striped table-hover">
 				<thead>
 					<tr>
@@ -48,7 +48,7 @@
 		{/if}
 
 		{if $samsungRows}
-			<h2>{tr}Samsung Health{/tr}</h2>
+			<h2>{tr}Samsung Health{/tr}{if $samsungLast} &mdash; {tr}Last Download{/tr}: {$samsungLast|bit_short_date}{/if}</h2>
 			<table class="table table-striped table-hover">
 				<thead>
 					<tr>
@@ -62,32 +62,6 @@
 						<tr>
 							<td>{$row.title|escape}</td>
 							<td>{$row.count}</td>
-							<td>{if $row.count}{$row.min_date|bit_short_date} &ndash; {$row.max_date|bit_short_date}{/if}</td>
-						</tr>
-					{/foreach}
-				</tbody>
-			</table>
-		{/if}
-
-		{if $combinedRows}
-			<h2>{tr}Blood Pressure &amp; Oximeter (HealthForYou cuff + Samsung watch){/tr}</h2>
-			<table class="table table-striped table-hover">
-				<thead>
-					<tr>
-						<th>{tr}Record type{/tr}</th>
-						<th>{tr}Count{/tr}</th>
-						<th>{tr}Cuff (HealthForYou){/tr}</th>
-						<th>{tr}Watch (Samsung){/tr}</th>
-						<th>{tr}Period covered{/tr}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{foreach $combinedRows as $row}
-						<tr>
-							<td>{$row.title|escape}</td>
-							<td>{$row.count}</td>
-							<td>{$row.cuff_count}</td>
-							<td>{$row.watch_count}</td>
 							<td>{if $row.count}{$row.min_date|bit_short_date} &ndash; {$row.max_date|bit_short_date}{/if}</td>
 						</tr>
 					{/foreach}

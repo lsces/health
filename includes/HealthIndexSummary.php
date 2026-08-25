@@ -62,23 +62,29 @@ function healthIndexItemSummary(): array {
  * thousands of rows per item, not HEALTH_HR_RAW's scale) and the exact
  * literal these importers always write.
  *
+ * Returns count + date range per bucket (not just count) so each half can
+ * be listed as its own row in index.php's HealthForYou/Samsung Health
+ * sections — Lester's own call: the cuff/watch split matters enough to
+ * show natively in each app's own section (with that bucket's *own* real
+ * period covered, not the item's combined range), not just as a separate
+ * third "combined" table.
+ *
  * @param  string $pItem  'BP' or 'OXI'.
- * @return array{cuff:int, watch:int}
+ * @return array{cuff:array{count:int,min_date:?string,max_date:?string}, watch:array{count:int,min_date:?string,max_date:?string}}
  */
 function healthIndexSourceSplit( string $pItem ): array {
 	global $gBitDb;
 	$X = BIT_DB_PREFIX;
-	$watch = (int)$gBitDb->getOne(
-		"SELECT COUNT(*) FROM `{$X}liberty_xref` x
-			JOIN `{$X}liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
-			WHERE lc.`content_type_guid` = 'healthday' AND x.`item` = ? AND x.`data` LIKE '%\"source\":\"watch\"%'",
-		[ $pItem ]
-	);
-	$total = (int)$gBitDb->getOne(
-		"SELECT COUNT(*) FROM `{$X}liberty_xref` x
-			JOIN `{$X}liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
-			WHERE lc.`content_type_guid` = 'healthday' AND x.`item` = ?",
-		[ $pItem ]
-	);
-	return [ 'cuff' => $total - $watch, 'watch' => $watch ];
+	$baseSql = "SELECT COUNT(*) AS `cnt`, MIN(x.`start_date`) AS `min_date`, MAX(x.`start_date`) AS `max_date`
+		FROM `{$X}liberty_xref` x
+		JOIN `{$X}liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
+		WHERE lc.`content_type_guid` = 'healthday' AND x.`item` = ?";
+
+	$watch = $gBitDb->getRow( "$baseSql AND x.`data` LIKE '%\"source\":\"watch\"%'", [ $pItem ] );
+	$cuff  = $gBitDb->getRow( "$baseSql AND ( x.`data` IS NULL OR x.`data` NOT LIKE '%\"source\":\"watch\"%' )", [ $pItem ] );
+
+	return [
+		'cuff'  => [ 'count' => (int)( $cuff['cnt'] ?? 0 ),  'min_date' => $cuff['min_date']  ?? null, 'max_date' => $cuff['max_date']  ?? null ],
+		'watch' => [ 'count' => (int)( $watch['cnt'] ?? 0 ), 'min_date' => $watch['min_date'] ?? null, 'max_date' => $watch['max_date'] ?? null ],
+	];
 }
