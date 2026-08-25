@@ -201,6 +201,45 @@ function healthFormatBPLine( float $pSysMin, float $pSysMax, float $pDiaMin, flo
 }
 
 /**
+ * PULSE day-summary: true day min/max from RAISEDHR's own cached figure
+ * (see HealthDay::getDayCellHtml()'s docblock — computed once at rebuild
+ * time from the real underlying HR trace, cheaper and more accurate than
+ * re-deriving from PULSE's own half-hour slot xkey_ext ranges, which would
+ * only ever show a slot's smoothed range, not the day's true spikes/dips).
+ * Average is a plain mean of PULSE's own half-hour slot averages (`xkey`)
+ * for the day — a coarser figure than a true reading-level mean would be,
+ * but consistent with every other summary function's "cheap query-time
+ * reduction over the day's own rows" approach, and RAISEDHR doesn't carry
+ * an average of its own to reuse. Returns null only if there's neither a
+ * RAISEDHR range nor any PULSE slots that day.
+ *
+ * @return array{avg:?float,min:?float,max:?float}|null
+ */
+function healthDaySummaryPulse( int $pContentId ): ?array {
+	global $gBitDb;
+
+	$raisedHrData = $gBitDb->getOne(
+		"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
+		[ $pContentId ]
+	);
+	$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
+	$min = isset( $raisedHr['hr_min'] ) ? (float)$raisedHr['hr_min'] : null;
+	$max = isset( $raisedHr['hr_max'] ) ? (float)$raisedHr['hr_max'] : null;
+
+	$avg = $gBitDb->getOne(
+		"SELECT AVG(CAST(`xkey` AS DOUBLE PRECISION)) FROM `".BIT_DB_PREFIX."liberty_xref`
+			WHERE `content_id` = ? AND `item` = 'PULSE'",
+		[ $pContentId ]
+	);
+	$avg = $avg !== null ? round( (float)$avg, 1 ) : null;
+
+	if( $min === null && $max === null && $avg === null ) {
+		return null;
+	}
+	return [ 'avg' => $avg, 'min' => $min, 'max' => $max ];
+}
+
+/**
  * HRV day-summary: average sdnn/rmssd across every half-hour slot that
  * day. Only meaningful once PULSE-style HRV slots exist for the day - see
  * ImportHRV.php.

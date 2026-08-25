@@ -50,11 +50,7 @@ $gContent->loadXrefInfo();
 
 require_once __DIR__.'/includes/HealthDaySummary.php';
 
-$raisedHrData = $gBitDb->getOne(
-	"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
-	[ $contentId ]
-);
-$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
+$pulse = healthDaySummaryPulse( $contentId );
 
 // BP: day-wide range line (same figure the calendar tile shows), plus the
 // three fixed time-slot averages (morning/midday/evening) - see
@@ -100,8 +96,9 @@ $gBitSmarty->assign( 'wtSummary',   healthDaySummaryWT( $contentId ) );
 $gBitSmarty->assign( 'bpCount',     $bp['count'] ?? 0 );
 $gBitSmarty->assign( 'bpLine',      $bpLine );
 $gBitSmarty->assign( 'bpSlots',     $bpSlots );
-$gBitSmarty->assign( 'hrMin',       $raisedHr['hr_min'] ?? null );
-$gBitSmarty->assign( 'hrMax',       $raisedHr['hr_max'] ?? null );
+$gBitSmarty->assign( 'hrMin',       $pulse['min'] ?? null );
+$gBitSmarty->assign( 'hrMax',       $pulse['max'] ?? null );
+$gBitSmarty->assign( 'hrAvg',       $pulse['avg'] ?? null );
 $gBitSmarty->assign( 'energyLine',  isset( $energy['total_score'] ) ? healthFormatNumber( $energy['total_score'] ) : null );
 $gBitSmarty->assign( 'hrvLine',     isset( $energy['shrv_value'] )  ? healthFormatNumber( $energy['shrv_value'] )  : null );
 $gBitSmarty->assign( 'sleepLine',   healthFormatSleepLine( $energy['detail']['sleep_score'] ?? null, $sleepSessions ) );
