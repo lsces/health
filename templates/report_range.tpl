@@ -7,7 +7,7 @@
 		<form method="get" action="{$smarty.const.HEALTH_PKG_URL}report_range.php" class="form-inline hidden-print">
 			<div class="form-group">
 				<label for="from">{tr}From{/tr}</label>
-				<input type="date" class="form-control input-sm" name="from" id="from" value="{$from|escape}" />
+				<input type="date" class="form-control input-sm" name="from" id="from" value="{$from|escape}" onchange="healthReportBumpTo(this.value)" />
 			</div>
 			<div class="form-group">
 				<label for="to">{tr}To{/tr}</label>
@@ -59,3 +59,16 @@
 	</div>
 </div>
 {/strip}
+<script>
+// Changing From bumps To to 6 days later (a 7-day span, matching the
+// page's own default) - always overwrites To, on the assumption that
+// picking a new From means "start a new week from here", not "keep
+// whatever To already had". Plain Date math on the YYYY-MM-DD value an
+// <input type="date"> already gives/wants, no library needed.
+function healthReportBumpTo( pFromVal ) {
+	if ( !pFromVal ) return;
+	var d = new Date( pFromVal + 'T00:00:00' );
+	d.setDate( d.getDate() + 6 );
+	document.getElementById( 'to' ).value = d.toISOString().slice( 0, 10 );
+}
+</script>
