@@ -64,9 +64,7 @@
 						{/foreach}
 					</tbody>
 				</table>
-				<nav class="bitnav-pager">
-					{pagination}
-				</nav>
+				{pagination}
 			{else}
 				<p>{tr}No rows for this item.{/tr}</p>
 			{/if}
