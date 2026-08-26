@@ -19,7 +19,7 @@
 				<input type="date" name="to" id="to" value="{$to|escape}" />
 			</form>
 		</li>
-		<li style="float:left; margin-left:8px"><button type="submit" form="reportNavForm">{tr}Update{/tr}</button></li>
+		<li class="bitnav-gap"><button type="submit" form="reportNavForm">{tr}Update{/tr}</button></li>
 	</ul>
 
 	<ul class="pagination">

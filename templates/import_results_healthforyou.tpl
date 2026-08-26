@@ -16,7 +16,7 @@
 							<input type="file" name="export_file" accept=".csv,text/csv" />
 						</form>
 					</li>
-					<li style="float:left; margin-left:8px"><button type="submit" form="hfyUploadForm">{tr}Upload &amp; Run{/tr}</button></li>
+					<li class="bitnav-gap"><button type="submit" form="hfyUploadForm">{tr}Upload &amp; Run{/tr}</button></li>
 				</ul>
 			{/if}
 		</div>

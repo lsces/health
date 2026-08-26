@@ -13,19 +13,28 @@
 					{else}
 						{tr}No health data imported yet.{/tr}
 					{/if}
-					<a href="{$smarty.const.CALENDAR_PKG_URL}index.php?content_type_guid[]=healthday">{tr}View in Calendar{/tr}</a>
 				</p>
 
-				<form class="form-inline" method="get" action="{$smarty.const.HEALTH_PKG_URL}index.php">
-					<div class="form-group">
-						<label for="date">{tr}Go to day{/tr}</label>
-						<input type="date" class="form-control input-sm" name="date" id="date" value="{$dateNotFound|escape}" />
-					</div>
-					<button type="submit" class="btn btn-default btn-sm">{tr}Go{/tr}</button>
-					{if $dateNotFound}
-						<span class="label label-warning">{tr}No data recorded for{/tr} {$dateNotFound|escape}.</span>
-					{/if}
-				</form>
+				<div class="bitnav">
+					<ul class="pagination">
+						<li class="bitnav-picker">
+							<form method="get" action="{$smarty.const.HEALTH_PKG_URL}index.php" id="healthGoToDayForm">
+								<label for="date">{tr}Go to day{/tr}</label>
+								<input type="date" name="date" id="date" value="{$dateNotFound|escape}" onchange="healthUpdateCalendarLink(this.value)" />
+							</form>
+						</li>
+						<li class="bitnav-gap"><button type="submit" form="healthGoToDayForm">{tr}Day{/tr}</button></li>
+						<li class="bitnav-gap"><a id="healthCalendarLink" href="{$smarty.const.CALENDAR_PKG_URL}package_page.php?pkg=health{if $dateNotFound}&amp;todate={$dateNotFound|escape}{/if}">{tr}Calendar{/tr}</a></li>
+					</ul>
+
+					<ul class="pagination">
+						<li><a href="{$smarty.const.HEALTH_PKG_URL}list_item.php">{tr}Raw Data{/tr}</a></li>
+					</ul>
+				</div>
+
+				{if $dateNotFound}
+					<p><span class="label label-warning">{tr}No data recorded for{/tr} {$dateNotFound|escape}.</span></p>
+				{/if}
 
 				<h3>{tr}Reports{/tr}</h3>
 				<form method="get">
@@ -141,5 +150,13 @@ function healthReportBumpTo( pFromVal ) {
 	var d = new Date( pFromVal + 'T00:00:00' );
 	d.setDate( d.getDate() + 6 );
 	document.getElementById( 'report_to' ).value = d.toISOString().slice( 0, 10 );
+}
+
+// Keeps the Calendar link jumping to whatever date is currently picked, rather than
+// always landing on today.
+var healthCalendarBaseUrl = '{$smarty.const.CALENDAR_PKG_URL}package_page.php?pkg=health';
+function healthUpdateCalendarLink( pDateVal ) {
+	if ( !pDateVal ) return;
+	document.getElementById( 'healthCalendarLink' ).href = healthCalendarBaseUrl + '&todate=' + pDateVal;
 }
 </script>
