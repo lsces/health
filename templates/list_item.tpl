@@ -22,7 +22,7 @@
 					<li><a href="{$smarty.const.HEALTH_PKG_URL}index.php"><span class="bitnav-arrow">&laquo;</span> {tr}Back{/tr}</a></li>
 				</ul>
 
-				{include file="bitpackage:health/bitnav_range_inc.tpl" buttonLabel="Filter" bumpDays=31 ownForm=false}
+				{include file="bitpackage:kernel/bitnav_range_inc.tpl" buttonLabel="Filter" bumpDays=31 ownForm=false}
 			</div>
 		</form>
 
