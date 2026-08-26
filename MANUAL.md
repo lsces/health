@@ -231,3 +231,6 @@ diary and pantry ledger. No publish/copy mechanism needed for this package.
 - The actual cherry-picked CSV/`jsons/` type list — policy decided (usage-driven, not
   richness-driven), the list itself still needs a real pass against
   `reference_samsung_health_export`'s inventory.
+- `exercise/*.location_data.json`'s per-second lat/long/altitude (shape-2, tied to logged Exercise
+  sessions, not passive step-counting) has no display plan yet — natural home would be the
+  `mapper` package's existing Leaflet viewer rather than building new map-drawing infra here.
