@@ -49,18 +49,6 @@
 </div>
 {/strip}
 <script>
-// Changing From bumps To to 6 days later (a 7-day span, matching the
-// page's own default) - always overwrites To, on the assumption that
-// picking a new From means "start a new week from here", not "keep
-// whatever To already had". Plain Date math on the YYYY-MM-DD value an
-// <input type="date"> already gives/wants, no library needed.
-function healthReportBumpTo( pFromVal ) {
-	if ( !pFromVal ) return;
-	var d = new Date( pFromVal + 'T00:00:00' );
-	d.setDate( d.getDate() + 6 );
-	document.getElementById( 'to' ).value = d.toISOString().slice( 0, 10 );
-}
-
 {if $autoPrint}
 // Reached via index.php's Reports list Print button (?print=1) — fire the print dialog as soon
 // as the page has actually rendered, so it feels like one click from the General tab.

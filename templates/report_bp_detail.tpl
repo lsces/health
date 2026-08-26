@@ -49,14 +49,6 @@
 </div>
 {/strip}
 <script>
-// Same convention as report_range.tpl's own copy.
-function healthReportBumpTo( pFromVal ) {
-	if ( !pFromVal ) return;
-	var d = new Date( pFromVal + 'T00:00:00' );
-	d.setDate( d.getDate() + 6 );
-	document.getElementById( 'to' ).value = d.toISOString().slice( 0, 10 );
-}
-
 {if $autoPrint}
 window.addEventListener( 'load', function() { window.print(); } );
 {/if}

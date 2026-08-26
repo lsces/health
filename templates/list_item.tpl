@@ -17,20 +17,12 @@
 			</p>
 			<noscript><p><input type="submit" value="{tr}Show{/tr}" /></p></noscript>
 
-			<div class="bitnav">
+			<div class="bitnav bitnav-3col">
 				<ul class="pagination">
 					<li><a href="{$smarty.const.HEALTH_PKG_URL}index.php"><span class="bitnav-arrow">&laquo;</span> {tr}Back{/tr}</a></li>
 				</ul>
 
-				<ul class="pagination">
-					<li class="bitnav-picker">
-						<label for="from">{tr}From{/tr}</label>
-						<input type="date" name="from" id="from" value="{$from|escape}" onchange="healthListItemBumpTo(this.value)" />
-						<label for="to">{tr}To{/tr}</label>
-						<input type="date" name="to" id="to" value="{$to|escape}" />
-					</li>
-					<li class="bitnav-gap"><button type="submit">{tr}Filter{/tr}</button></li>
-				</ul>
+				{include file="bitpackage:health/bitnav_range_inc.tpl" buttonLabel="Filter" bumpDays=31 ownForm=false}
 			</div>
 		</form>
 
@@ -72,13 +64,3 @@
 	</div>
 </div>
 {/strip}
-<script>
-// Same convention as report_range.tpl's healthReportBumpTo() - just a 31-day span
-// here rather than 7, since this is a raw-data browse window not a clinical report.
-function healthListItemBumpTo( pFromVal ) {
-	if ( !pFromVal ) return;
-	var d = new Date( pFromVal + 'T00:00:00' );
-	d.setDate( d.getDate() + 31 );
-	document.getElementById( 'to' ).value = d.toISOString().slice( 0, 10 );
-}
-</script>
