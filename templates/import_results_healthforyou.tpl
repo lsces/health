@@ -4,15 +4,22 @@
 		<h1>{$page_title|default:"Upload HealthForYou Export"|escape}</h1>
 	</div>
 	<div class="body">
-		{if $uploadForm}
-			<form method="post" enctype="multipart/form-data">
-				<div class="form-inline">
-					<input type="file" name="export_file" accept=".csv,text/csv" />
-					<input type="submit" class="btn btn-default btn-sm" value="{tr}Upload &amp; Run{/tr}" />
-				</div>
-			</form>
-			<hr />
-		{/if}
+		<div class="bitnav">
+			<ul class="pagination">
+				<li><a href="{$smarty.const.HEALTH_PKG_URL}index.php"><span class="bitnav-arrow">&laquo;</span> {tr}Back{/tr}</a></li>
+			</ul>
+
+			{if $uploadForm}
+				<ul class="pagination">
+					<li class="bitnav-picker">
+						<form method="post" enctype="multipart/form-data" id="hfyUploadForm">
+							<input type="file" name="export_file" accept=".csv,text/csv" />
+						</form>
+					</li>
+					<li style="float:left; margin-left:8px"><button type="submit" form="hfyUploadForm">{tr}Upload &amp; Run{/tr}</button></li>
+				</ul>
+			{/if}
+		</div>
 
 		{if $csvFile}
 			<p>{tr}File{/tr}: <code>{$csvFile|escape}</code></p>
