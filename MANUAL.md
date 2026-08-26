@@ -232,5 +232,7 @@ diary and pantry ledger. No publish/copy mechanism needed for this package.
   richness-driven), the list itself still needs a real pass against
   `reference_samsung_health_export`'s inventory.
 - `exercise/*.location_data.json`'s per-second lat/long/altitude (shape-2, tied to logged Exercise
-  sessions, not passive step-counting) has no display plan yet — natural home would be the
-  `mapper` package's existing Leaflet viewer rather than building new map-drawing infra here.
+  sessions, not passive step-counting) — **not health's job to solve** (Lester's call, 2026-08-26):
+  importing/converting these traces for display is a `mapper`-package task (see its own
+  `CLAUDE.md`'s "Known follow-ups"), not something health should build. Health's only stake is
+  having the raw JSON available for mapper to read.
