@@ -4,18 +4,7 @@
 		<h1>{tr}Health Report{/tr}</h1>
 	</div>
 	<div class="body">
-		<form method="get" action="{$smarty.const.HEALTH_PKG_URL}report_range.php" class="form-inline hidden-print">
-			<div class="form-group">
-				<label for="from">{tr}From{/tr}</label>
-				<input type="date" class="form-control input-sm" name="from" id="from" value="{$from|escape}" onchange="healthReportBumpTo(this.value)" />
-			</div>
-			<div class="form-group">
-				<label for="to">{tr}To{/tr}</label>
-				<input type="date" class="form-control input-sm" name="to" id="to" value="{$to|escape}" />
-			</div>
-			<button type="submit" class="btn btn-default btn-sm">{tr}Update{/tr}</button>
-			<button type="button" class="btn btn-default btn-sm" onclick="window.print()">{tr}Print{/tr}</button>
-		</form>
+		{include file="bitpackage:health/report_nav_inc.tpl"}
 
 		<h2>{$from|bit_short_date} &ndash; {$to|bit_short_date}</h2>
 
@@ -71,4 +60,10 @@ function healthReportBumpTo( pFromVal ) {
 	d.setDate( d.getDate() + 6 );
 	document.getElementById( 'to' ).value = d.toISOString().slice( 0, 10 );
 }
+
+{if $autoPrint}
+// Reached via index.php's Reports list Print button (?print=1) — fire the print dialog as soon
+// as the page has actually rendered, so it feels like one click from the General tab.
+window.addEventListener( 'load', function() { window.print(); } );
+{/if}
 </script>

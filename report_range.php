@@ -77,5 +77,10 @@ $gBitSmarty->assign( 'rows',    $rows );
 $gBitSmarty->assign( 'from',    $from );
 $gBitSmarty->assign( 'to',      $to );
 $gBitSmarty->assign( 'rangeBP', $rangeBP );
+// A link can't trigger the browser's print dialog without a page actually loading first (no
+// such thing as printing "straight through" a plain URL) — closest practical equivalent is this:
+// the index.php Reports list's own Print button appends ?print=1, and the template below fires
+// window.print() itself once the page has loaded, so the flow feels like one click.
+$gBitSmarty->assign( 'autoPrint', !empty( $_REQUEST['print'] ) );
 
 $gBitSystem->display( 'bitpackage:health/report_range.tpl', KernelTools::tra( 'Health Report' ) );

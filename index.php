@@ -94,4 +94,32 @@ $gBitSmarty->assign( 'healthForYouLast', $healthForYouMax ? max( $healthForYouMa
 $gBitSmarty->assign( 'samsungLast',      $samsungMax ? max( $samsungMax ) : null );
 $gBitSmarty->assign( 'dateNotFound',     $dateNotFound );
 
+// Raw HealthForYou exports already uploaded (storage/health/archive/), newest first — shown on
+// the HealthForYou tab so earlier uploads stay visible, not just the latest one's
+// import_results.tpl. Samsung has no equivalent yet (its own single-pass upload isn't built).
+$healthForYouUploads = [];
+$archiveDir = HEALTH_IMPORT_PATH.'archive/';
+if( is_dir( $archiveDir ) ) {
+	foreach( glob( $archiveDir.'*.csv' ) as $path ) {
+		$healthForYouUploads[] = [
+			'name'  => basename( $path ),
+			'size'  => filesize( $path ),
+			'mtime' => filemtime( $path ),
+		];
+	}
+	usort( $healthForYouUploads, fn( $a, $b ) => $b['mtime'] <=> $a['mtime'] );
+}
+$gBitSmarty->assign( 'healthForYouUploads', $healthForYouUploads );
+
+// Reports section (General tab) — a shared From/To period selector feeding a list of report
+// pages, each with its own View/Print button. Only one report exists today (report_range.php)
+// but the list shape is built for more without changing this section again — a future report
+// just adds another row here, each targeting its own URL via the row button's own formaction.
+$reportToday      = new \DateTime( 'today', new \DateTimeZone( 'Europe/London' ) );
+$gBitSmarty->assign( 'reportFrom', ( clone $reportToday )->modify( '-6 days' )->format( 'Y-m-d' ) );
+$gBitSmarty->assign( 'reportTo',   $reportToday->format( 'Y-m-d' ) );
+$gBitSmarty->assign( 'healthReports', [
+	[ 'title' => KernelTools::tra( 'Weekly Range Report' ), 'url' => HEALTH_PKG_URL.'report_range.php' ],
+] );
+
 $gBitSystem->display( 'bitpackage:health/index.tpl', KernelTools::tra( 'Health' ) );
