@@ -39,6 +39,30 @@ if( !in_array( $selectedItem, $validItems, true ) ) {
 
 [ $xkeyTitle, $xkeyExtTitle, $dataTitle ] = $columnTitles[$selectedItem] ?? [ 'xkey', 'xkey_ext', 'data' ];
 
+// Optional date-range narrowing (the same From/To bar every other Health page now uses) -
+// blank by default, so this still browses everything unless a range is actually picked.
+$from = trim( $_REQUEST['from'] ?? '' );
+$to   = trim( $_REQUEST['to']   ?? '' );
+if( $from !== '' && !preg_match( '/^\d{4}-\d{2}-\d{2}$/', $from ) ) {
+	$from = '';
+}
+if( $to !== '' && !preg_match( '/^\d{4}-\d{2}-\d{2}$/', $to ) ) {
+	$to = '';
+}
+if( $from !== '' && $to !== '' && $from > $to ) {
+	[ $from, $to ] = [ $to, $from ];
+}
+$dateWhere  = '';
+$dateParams = [];
+if( $from !== '' ) {
+	$dateWhere   .= " AND lc.`title` >= ?";
+	$dateParams[] = $from;
+}
+if( $to !== '' ) {
+	$dateWhere   .= " AND lc.`title` <= ?";
+	$dateParams[] = $to;
+}
+
 // 20 per page here rather than the site's own max_records default (10) —
 // still overridable via ?max_records= same as any other paginated list.
 $_REQUEST['max_records'] = $_REQUEST['max_records'] ?? 20;
@@ -49,18 +73,18 @@ if( $selectedItem !== '' ) {
 	$_REQUEST['cant'] = (int)$gBitDb->getOne(
 		"SELECT COUNT(*) FROM `{$X}liberty_xref` x
 			JOIN `{$X}liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
-			WHERE x.`item` = ? AND lc.`content_type_guid` = 'healthday'",
-		[ $selectedItem ]
+			WHERE x.`item` = ? AND lc.`content_type_guid` = 'healthday'{$dateWhere}",
+		[ $selectedItem, ...$dateParams ]
 	);
 
 	$rows = $gBitDb->getAll(
 		"SELECT FIRST ".(int)$_REQUEST['max_records']." SKIP ".(int)$_REQUEST['offset']."
-			lc.`title` AS `day_title`, x.`xkey`, x.`xkey_ext`, x.`data`
+			lc.`title` AS `day_title`, x.`start_date`, x.`xkey`, x.`xkey_ext`, x.`data`
 			FROM `{$X}liberty_xref` x
 			JOIN `{$X}liberty_content` lc ON ( lc.`content_id` = x.`content_id` )
-			WHERE x.`item` = ? AND lc.`content_type_guid` = 'healthday'
-			ORDER BY x.`entry_date` DESC",
-		[ $selectedItem ]
+			WHERE x.`item` = ? AND lc.`content_type_guid` = 'healthday'{$dateWhere}
+			ORDER BY lc.`title` DESC, x.`start_date` DESC",
+		[ $selectedItem, ...$dateParams ]
 	);
 
 		// PULSE's per-slot bin arrays (and anything else similarly dense) make
@@ -68,19 +92,27 @@ if( $selectedItem !== '' ) {
 		// array items behind a <details> disclosure in the template, summary
 		// text only, rather than truncating the string (which would just cut
 		// valid JSON mid-object).
+		$tz = new \DateTimeZone( 'Europe/London' );
 		foreach( $rows as &$row ) {
 			$decoded = json_decode( (string)$row['data'], true );
 			$row['data_summary'] = ( is_array( $decoded ) && count( $decoded ) > 3 )
 				? count( $decoded ).' items' : null;
+			// start_date is stored UTC (see ImportWT.php/ImportBP.php's own docblocks) -
+			// converted to local time here so morning/evening readings are distinguishable
+			// at a glance, same as the day-summary reports already do.
+			$row['time'] = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )
+				->setTimezone( $tz )->format( 'H:i' );
 		}
 		unset( $row );
 }
 
 BitBase::postGetList( $_REQUEST );
-$_REQUEST['listInfo']['parameters'] = [ 'item' => $selectedItem ];
+$_REQUEST['listInfo']['parameters'] = [ 'item' => $selectedItem, 'from' => $from, 'to' => $to ];
 
 $gBitSmarty->assign( 'items',         $items );
 $gBitSmarty->assign( 'selectedItem',  $selectedItem );
+$gBitSmarty->assign( 'from',          $from );
+$gBitSmarty->assign( 'to',            $to );
 $gBitSmarty->assign( 'rows',          $rows );
 $gBitSmarty->assign( 'total',         $_REQUEST['cant'] ?? 0 );
 $gBitSmarty->assign( 'xkeyTitle',     $xkeyTitle );

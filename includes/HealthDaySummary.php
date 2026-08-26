@@ -123,7 +123,7 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 		$local = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
 		$hour  = (int)$local->format( 'H' );
 		$slot  = $hour < 9 ? 'morning' : ( $hour < 16 ? 'midday' : 'evening' );
-		$slotRows[$slot][] = [ 'sys' => $s, 'dia' => $d, 'pulse' => $p ];
+		$slotRows[$slot][] = [ 'sys' => $s, 'dia' => $d, 'pulse' => $p, 'time' => $local->format( 'H:i' ) ];
 	}
 
 	$avg = fn( array $v ) => $v ? array_sum( $v ) / count( $v ) : null;
@@ -140,6 +140,10 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 			'diastolic' => round( $avg( array_column( $readings, 'dia' ) ), 1 ),
 			'pulse'     => $slotPulse ? round( $avg( $slotPulse ), 1 ) : null,
 			'count'     => count( $readings ),
+			// Raw per-reading list (time/sys/dia/pulse) alongside the slot average above -
+			// report_range.php only ever reads the averaged fields, report_bp_detail.php
+			// uses this instead to show every reading rather than collapsing the slot.
+			'readings'  => $readings,
 		];
 	}
 
