@@ -7,6 +7,10 @@
  * new data - each day's existing PULSE/RAISEDHR rows are replaced, not
  * accumulated alongside.
  *
+ * Optional ?days=N rebuilds just the last N days (ending today) via
+ * healthRebuildRecentDays() instead of walking the whole HEALTH_HR_RAW
+ * history - much faster for re-running after a small/incremental update.
+ *
  * @package health
  */
 
@@ -21,7 +25,11 @@ require_once __DIR__.'/RebuildHRDerived.php';
 
 set_time_limit( 0 );
 
-$result = healthRebuildAllDays();
+if( !empty( $_GET['days'] ) && ctype_digit( $_GET['days'] ) ) {
+	$result = healthRebuildRecentDays( (int)$_GET['days'] );
+} else {
+	$result = healthRebuildAllDays();
+}
 
 $gBitSmarty->assign( 'result', $result );
 

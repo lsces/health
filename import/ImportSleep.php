@@ -20,12 +20,17 @@
  * start_time falls on** — e.g. a sleep starting 23:03 and ending 06:19 the
  * next morning belongs to the day it started, not the day it ended.
  *
- * **BST/GMT handling**: the source has a `time_offset` column, but (per the
- * same fix already applied to session-shaped data — see health/MANUAL.md's
- * "Content model" section, session start/end notes) that single offset can't
- * be trusted for both ends of a session spanning a transition. Both
- * `start_time`/`end_time` are resolved directly against the `Europe/London`
- * IANA zone instead, ignoring the row's own `time_offset` entirely.
+ * **BST/GMT handling — fixed 2026-08-27**: `start_time` is parsed as UTC, not
+ * Europe/London. Samsung's own `start_time` for this CSV is already the
+ * UTC-equivalent value (confirmed cross-checking against HealthForYou's
+ * independent log of the same reading for BP — see ImportBPSamsung.php's
+ * docblock); parsing with Europe/London here double-subtracted the BST hour,
+ * same bug, same fix. The row's own `time_offset` is still ignored, but not
+ * because it's redundant with a local-time conversion — start_time needs no
+ * conversion at all. `end_time` isn't actually read by this importer despite
+ * the "both ends" framing above (only `sleep_duration` minutes is stored) —
+ * that stale claim predates this fix, left as-is since fixing it isn't in
+ * scope here.
  *
  * `xkey`=sleep_score, `xkey_ext`=sleep_duration (minutes), `data`=json
  * `{efficiency}`.
@@ -96,7 +101,7 @@ function healthImportSleep( string $pCsvFile ): array {
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	$tz = new \DateTimeZone( 'UTC' );
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $rowNum => $row ) {
 		$startStr = $row['com.samsung.health.sleep.start_time'] ?? '';

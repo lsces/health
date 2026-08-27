@@ -94,10 +94,11 @@ $gBitSmarty->assign( 'healthForYouLast', $healthForYouMax ? max( $healthForYouMa
 $gBitSmarty->assign( 'samsungLast',      $samsungMax ? max( $samsungMax ) : null );
 $gBitSmarty->assign( 'dateNotFound',     $dateNotFound );
 
-// Raw HealthForYou exports already uploaded (storage/health/archive/), newest first — shown on
-// the HealthForYou tab so earlier uploads stay visible, not just the latest one's
-// import_results.tpl. Samsung has no equivalent yet (its own single-pass upload isn't built).
+// Raw exports already uploaded (storage/health/archive/), newest first — shown on each tab so
+// earlier uploads stay visible, not just the latest one's import_results.tpl. Samsung's own
+// single-pass upload (load_samsung.php/ImportSamsung.php) built 2026-08-27.
 $healthForYouUploads = [];
+$samsungUploads      = [];
 $archiveDir = HEALTH_IMPORT_PATH.'archive/';
 if( is_dir( $archiveDir ) ) {
 	foreach( glob( $archiveDir.'*.csv' ) as $path ) {
@@ -108,8 +109,18 @@ if( is_dir( $archiveDir ) ) {
 		];
 	}
 	usort( $healthForYouUploads, fn( $a, $b ) => $b['mtime'] <=> $a['mtime'] );
+
+	foreach( array_merge( glob( $archiveDir.'*.tar.gz' ), glob( $archiveDir.'*.tgz' ) ) as $path ) {
+		$samsungUploads[] = [
+			'name'  => basename( $path ),
+			'size'  => filesize( $path ),
+			'mtime' => filemtime( $path ),
+		];
+	}
+	usort( $samsungUploads, fn( $a, $b ) => $b['mtime'] <=> $a['mtime'] );
 }
 $gBitSmarty->assign( 'healthForYouUploads', $healthForYouUploads );
+$gBitSmarty->assign( 'samsungUploads',      $samsungUploads );
 
 // Reports section (General tab) — a shared From/To period selector feeding a list of report
 // pages, each with its own View/Print button - a future report just adds another row here,

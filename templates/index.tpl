@@ -66,12 +66,12 @@
 			{/jstab}
 
 			{jstab title="HealthForYou"}
-				<p>
-					{if $healthForYouLast}{tr}Last Download{/tr}: {$healthForYouLast|bit_short_date}{/if}
-					<a class="btn btn-default btn-xs" href="{$smarty.const.HEALTH_PKG_URL}import/load_healthforyou.php">{tr}Upload Export{/tr}</a>
-				</p>
+				{if $healthForYouLast}<p>{tr}Last Download{/tr}: {$healthForYouLast|bit_short_date}</p>{/if}
 
 				{if $healthForYouRows}
+					<div class="floaticon">
+						<a title="{tr}Upload Export{/tr}" href="{$smarty.const.HEALTH_PKG_URL}import/load_healthforyou.php">{biticon ipackage="icons" iname="insert-table" iexplain="Upload Export"}</a>
+					</div>
 					<table class="table table-striped table-hover">
 						<thead>
 							<tr>
@@ -119,6 +119,9 @@
 				{if $samsungLast}<p>{tr}Last Download{/tr}: {$samsungLast|bit_short_date}</p>{/if}
 
 				{if $samsungRows}
+					<div class="floaticon">
+						<a title="{tr}Upload Export{/tr}" href="{$smarty.const.HEALTH_PKG_URL}import/load_samsung.php">{biticon ipackage="icons" iname="insert-table" iexplain="Upload Export"}</a>
+					</div>
 					<table class="table table-striped table-hover">
 						<thead>
 							<tr>
@@ -133,6 +136,28 @@
 									<td>{$row.title|escape}</td>
 									<td>{$row.count}</td>
 									<td>{if $row.count}{$row.min_date|bit_short_date} &ndash; {$row.max_date|bit_short_date}{/if}</td>
+								</tr>
+							{/foreach}
+						</tbody>
+					</table>
+				{/if}
+
+				{if $samsungUploads}
+					<h3>{tr}Uploaded exports{/tr}</h3>
+					<table class="table table-condensed">
+						<thead>
+							<tr>
+								<th>{tr}File{/tr}</th>
+								<th>{tr}Uploaded{/tr}</th>
+								<th>{tr}Size{/tr}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{foreach $samsungUploads as $upload}
+								<tr>
+									<td>{$upload.name|escape}</td>
+									<td>{$upload.mtime|bit_short_datetime}</td>
+									<td>{$upload.size|@number_format} {tr}bytes{/tr}</td>
 								</tr>
 							{/foreach}
 						</tbody>

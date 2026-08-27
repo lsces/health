@@ -147,7 +147,14 @@ function healthRaisedHRParseExercise( string $pCsvFile, string $pJsonBaseDir ): 
 		return [ 'byDay' => $byDay, 'rowsNoHrData' => 0, 'errors' => [ "Can't read $pCsvFile" ] ];
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	// UTC, not Europe/London - Samsung's own start_time is already the UTC-
+	// equivalent value, same fix as ImportBPSamsung.php/ImportSleep.php/
+	// ImportOxiSamsung.php. Only used here to bucket a session into its
+	// calendar day (healthRaisedHRMinutes() itself works off the samples'
+	// own epoch start_time, already correct) - RAISEDHR is superseded by
+	// RebuildHRDerived.php's HEALTH_HR_RAW-based rebuild going forward, but
+	// this direct-import path stays correct too rather than left stale.
+	$tz = new \DateTimeZone( 'UTC' );
 	$P  = 'com.samsung.health.exercise.';
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $row ) {

@@ -36,9 +36,29 @@
  * purely because its seconds differ.
  *
  * Each reading is a single instant, not a session — no BST/GMT two-ends
- * problem the way sleep sessions have, but resolved via Europe/London
- * directly anyway (ignoring the row's own `time_offset`), same convention as
- * every other Samsung timestamp this package parses.
+ * problem the way sleep sessions have. **Parsed as UTC, not Europe/London**
+ * (fixed 2026-08-27) — Samsung's own `start_time` for this CSV is already the
+ * UTC-equivalent value, confirmed by cross-checking against HealthForYou's
+ * independent log of the same physical reading (its `time_offset` column is
+ * still ignored, but not because it's redundant with a local-time
+ * conversion — start_time needs no conversion at all). Applying
+ * Europe/London here (the original design, live 2026-08-22–2026-08-27)
+ * double-subtracted the BST hour and silently broke this file's own dedupe
+ * against HealthForYou — see health/CLAUDE.md's 2026-08-27 entry.
+ *
+ * **Audited every other Samsung importer for the same pattern 2026-08-27**:
+ * ImportSleep.php and ImportOxiSamsung.php parsed a raw CSV `start_time` the
+ * same broken way, fixed alongside this file. ImportRaisedHR.php's exercise-
+ * source day-bucketing had the same pattern too (narrower impact - only
+ * affects which calendar day a session's minutes get attributed to, not a
+ * stored instant - and is superseded by RebuildHRDerived.php's HEALTH_HR_RAW
+ * rebuild regardless), fixed for consistency. Everything else
+ * (ImportPulse.php/ImportRespiratoryRate.php/ImportSkinTemperature.php/
+ * ImportStepTrack.php/ImportHRRaw.php) either reads an already-unambiguous
+ * epoch bin timestamp (safe use of Europe/London, just for local-calendar
+ * bucketing, not value conversion) or a date-only `day_time` field with no
+ * real clock-time to misinterpret (ENERGY/STEPS/STEPTRACK) - confirmed
+ * genuinely unaffected, not just unchecked.
  *
  * Expects `com.samsung.shealth.blood_pressure.<date>.csv` in HEALTH_IMPORT_PATH
  * (storage/health/) — copy it from a `health_lester_<date>` split. Reuses
@@ -92,7 +112,14 @@ function healthImportBPSamsung( string $pCsvFile ): array {
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	// UTC, not Europe/London: confirmed 2026-08-27 by cross-checking Samsung's own
+	// start_time against HealthForYou's independent log of the same physical reading
+	// (e.g. 2025-09-01: HFY logs "05:44 am" BST for a reading Samsung's own CSV has as
+	// literal "04:44:00" — already the UTC-equivalent value, not local wall-clock).
+	// Parsing with Europe/London here double-subtracted the BST hour, landing every
+	// BST-period Samsung BP row an extra hour early and defeating healthStoreBP()'s
+	// dedupe against the correctly-converted HealthForYou row for the same reading.
+	$tz = new \DateTimeZone( 'UTC' );
 	$P  = 'com.samsung.health.blood_pressure.';
 
 	$cuffByKey = []; // dedupe key => row, collapses the buffer-resync duplicates

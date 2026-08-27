@@ -32,21 +32,43 @@ require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 const HEALTH_HR_RAW_BATCH_SIZE = 5000; // rows per commit
 
 /**
- * Insert one raw HR row. Returns TRUE on success, FALSE on failure,
- * including a START_TIME primary-key collision - not as rare as assumed
- * when this was first written: hit a real one within the exercise source
- * itself (same class of exact-duplicate-sync artifact already confirmed in
- * step_daily_trend). This ADOdb/PDO driver throws on a constraint
- * violation rather than returning false (checked query()'s source but not
- * its actual runtime behaviour under PDO - wrong assumption, caught live),
- * so the insert is wrapped in a try/catch here rather than trusting a
- * falsy return alone.
+ * Insert one raw HR row. Returns TRUE on success, FALSE if a row already
+ * exists for this exact START_TIME (the table's own primary key - a
+ * single-column key, deliberately: background and exercise sources are
+ * assumed never to land on the exact same instant, so no source-qualified
+ * check is needed here - see RebuildHRDerived.php's own docblock).
+ *
+ * **Checks first rather than catching the PK-violation exception (fixed
+ * 2026-08-27)**: the original exception-driven approach reset the whole
+ * transaction (CompleteTrans()+StartTrans()) on every single duplicate,
+ * because a failed statement leaves this ADOdb/PDO driver's transaction
+ * unusable for further inserts otherwise. Fine when duplicates are rare
+ * (a first-time import of genuinely new data), catastrophic on a re-run
+ * against data that's mostly already present - confirmed live: a ~15,500-row
+ * 2026-only re-run against the already-2.47M-row table never completed in
+ * 28+ minutes (thousands of forced fsync-commits, one per duplicate), while
+ * the exact same code against 2024's near-empty data returned in 0.15s. A
+ * plain indexed SELECT before the insert avoids the exception path (and its
+ * transaction-reset cost) for every duplicate, at the cost of one extra
+ * cheap read per row - net a massive win whenever re-running against
+ * substantially-already-imported data, which is the normal case for this
+ * importer (Samsung's export is always a full history, never incremental).
  */
 function healthStoreHRRaw( \DateTime $pStart, ?\DateTime $pEnd, float $pHeartRate, ?float $pMin, ?float $pMax, string $pSource, ?string $pDatauuid ): bool {
 	global $gBitDb;
 
+	$startStr = $pStart->format( 'Y-m-d H:i:s' );
+
+	$existing = $gBitDb->getOne(
+		"SELECT `start_time` FROM `health_hr_raw` WHERE `start_time` = ?",
+		[ $startStr ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
 	$row = [
-		'start_time' => $pStart->format( 'Y-m-d H:i:s' ),
+		'start_time' => $startStr,
 		'end_time'   => $pEnd ? $pEnd->format( 'Y-m-d H:i:s' ) : null,
 		'heart_rate' => $pHeartRate,
 		'heart_rate_min' => $pMin,
@@ -58,10 +80,10 @@ function healthStoreHRRaw( \DateTime $pStart, ?\DateTime $pEnd, float $pHeartRat
 	try {
 		return (bool)$gBitDb->associateInsert( 'health_hr_raw', $row );
 	} catch( \Throwable $e ) {
-		// A failed statement can leave the current transaction unusable for
-		// further inserts on some drivers - reset it defensively rather than
-		// risk every subsequent row in this batch cascading into the same
-		// failure until the next scheduled commit.
+		// Still possible in principle (a genuine race between the SELECT
+		// above and this INSERT, two rows sharing a start_time within the
+		// same batch before either commits) - same defensive transaction
+		// reset as before, just no longer the normal/expected path.
 		$gBitDb->CompleteTrans();
 		$gBitDb->StartTrans();
 		return false;

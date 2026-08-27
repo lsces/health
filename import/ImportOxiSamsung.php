@@ -19,6 +19,13 @@
  * `healthFindLatestSamsungCsv()` from `ImportPulse.php`, same pattern
  * `ImportBPSamsung.php` already uses against `ImportBP.php`.
  *
+ * **Parsed as UTC, not Europe/London (fixed 2026-08-27)** — Samsung's own
+ * `start_time` for this CSV is already the UTC-equivalent value, same bug
+ * and same fix as ImportBPSamsung.php (see that file's docblock for the
+ * cross-check that established this). Applying Europe/London here
+ * double-subtracted the BST hour, landing every BST-period reading an hour
+ * early.
+ *
  * @package health
  */
 
@@ -41,7 +48,7 @@ function healthImportOxiSamsung( string $pCsvFile ): array {
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	$tz = new \DateTimeZone( 'UTC' );
 	$P  = 'com.samsung.health.oxygen_saturation.';
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $rowNum => $row ) {

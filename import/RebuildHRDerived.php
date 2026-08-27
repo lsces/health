@@ -197,6 +197,89 @@ function healthRebuildDay( string $pDate ): array {
 }
 
 /**
+ * Rebuild an explicit [$pFrom, $pTo] date range (inclusive, Europe/London
+ * calendar days) - the tightest scoping of the three healthRebuild*()
+ * entry points, for ImportSamsung.php's own use: it already knows exactly
+ * which dates its just-appended delta rows cover, so it can rebuild exactly
+ * that span rather than a whole year or a trailing N-day window. Same
+ * delete-and-replace semantics as healthRebuildDay(), just scoped.
+ *
+ * @return array{daysProcessed:int, totalPulseSlots:int, totalRaisedHr:int, firstDate:?string, lastDate:?string}
+ */
+function healthRebuildDateRange( string $pFrom, string $pTo ): array {
+	$tz = new \DateTimeZone( 'Europe/London' );
+	$cursor = new \DateTime( $pFrom, $tz );
+	$last   = new \DateTime( $pTo, $tz );
+
+	$daysProcessed   = 0;
+	$totalPulseSlots = 0;
+	$totalRaisedHr   = 0;
+	$lastDate = null;
+
+	while( $cursor <= $last ) {
+		$date   = $cursor->format( 'Y-m-d' );
+		$result = healthRebuildDay( $date );
+		if( $result['rows'] > 0 ) {
+			$daysProcessed++;
+			$totalPulseSlots += $result['pulseSlots'];
+			$totalRaisedHr   += $result['raisedHr'] ? 1 : 0;
+			$lastDate = $date;
+		}
+		$cursor->modify( '+1 day' );
+	}
+
+	return [
+		'daysProcessed'   => $daysProcessed,
+		'totalPulseSlots' => $totalPulseSlots,
+		'totalRaisedHr'   => $totalRaisedHr,
+		'firstDate'       => $pFrom,
+		'lastDate'        => $lastDate,
+	];
+}
+
+/**
+ * Rebuild just the last $pDays days (Europe/London calendar days, ending
+ * today) - for re-running quickly after a small/incremental HEALTH_HR_RAW
+ * update instead of walking the table's entire history via
+ * healthRebuildAllDays(). Same delete-and-replace semantics as
+ * healthRebuildDay(), just scoped.
+ *
+ * @return array{daysProcessed:int, totalPulseSlots:int, totalRaisedHr:int, firstDate:?string, lastDate:?string}
+ */
+function healthRebuildRecentDays( int $pDays ): array {
+	$tz = new \DateTimeZone( 'Europe/London' );
+	$cursor = new \DateTime( 'today', $tz );
+	$cursor->modify( '-'.( $pDays - 1 ).' days' );
+	$last = new \DateTime( 'today', $tz );
+
+	$daysProcessed   = 0;
+	$totalPulseSlots = 0;
+	$totalRaisedHr   = 0;
+	$firstDate = $cursor->format( 'Y-m-d' );
+	$lastDate  = null;
+
+	while( $cursor <= $last ) {
+		$date   = $cursor->format( 'Y-m-d' );
+		$result = healthRebuildDay( $date );
+		if( $result['rows'] > 0 ) {
+			$daysProcessed++;
+			$totalPulseSlots += $result['pulseSlots'];
+			$totalRaisedHr   += $result['raisedHr'] ? 1 : 0;
+			$lastDate = $date;
+		}
+		$cursor->modify( '+1 day' );
+	}
+
+	return [
+		'daysProcessed'   => $daysProcessed,
+		'totalPulseSlots' => $totalPulseSlots,
+		'totalRaisedHr'   => $totalRaisedHr,
+		'firstDate'       => $firstDate,
+		'lastDate'        => $lastDate,
+	];
+}
+
+/**
  * Rebuild every day that has at least one HEALTH_HR_RAW row, across the
  * table's full date range.
  *
