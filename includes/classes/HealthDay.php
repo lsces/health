@@ -341,6 +341,7 @@ class HealthDay extends LibertyContent {
 			'HRV'       => [ 'SDNN',              'RMSSD',           'Slot Detail' ],
 			'STEPTRACK' => [ 'Total Steps',       'Peak (10 min)',   'Day Track' ],
 			'RAISEDHR'  => [ 'Mins >=90bpm',      'Mins >=100bpm',   'Day Detail' ],
+			'EXERCISE'  => [ 'Type',              'Duration (mins)', 'Detail' ],
 		];
 	}
 }

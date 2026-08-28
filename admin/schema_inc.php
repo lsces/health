@@ -163,4 +163,14 @@ $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,
 // detail json. 'key-json-text', see WT above.
 $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('RAISEDHR','healthday','general','Raised HR',-1,12,3,'','key-json-text','[\"mins_90\",\"mins_100\",\"mins_130\",\"exercise_mins_90\",\"exercise_mins_100\",\"exercise_mins_130\",\"exercise_sample_count\",\"background_mins_90\",\"background_mins_100\",\"background_mins_130\",\"background_sample_count\",\"hr_min\",\"hr_max\"]')";
 
+// EXERCISE — one row per Samsung exercise *session* (ImportExercise.php), same
+// "don't reduce at import time" approach as SLEEP. xkey = raw Samsung exercise_type
+// code (see HealthDay::getExerciseTypeLabel()-style mapping for display, e.g.
+// 1001=Walk/12001=Physio/else=Untagged); xkey_ext = clock-span duration in minutes
+// (end_time - start_time) deliberately, not Samsung's own smoothed 'duration' figure
+// — kept raw, including its known ~32% forgotten-stop noise, precisely so it's the
+// visible/flaggable value once the archive/history UI is in use. 'key-json-detail',
+// see PULSE above: titled xkey/xkey_ext, data offered as a collapsible block.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('EXERCISE','healthday','general','Exercise',-1,13,3,'','key-json-detail','[\"duration_min\",\"source_type\",\"calorie\",\"distance\",\"mean_heart_rate\",\"max_heart_rate\",\"min_heart_rate\",\"count\",\"title\"]')";
+
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );
