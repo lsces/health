@@ -79,6 +79,10 @@ $xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_gu
 $xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('resp','healthday','Respiratory Rate',6,3,'','')";
 $xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('stemp','healthday','Skin Temperature',7,3,'','')";
 $xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('hrv','healthday','Heart Rate Variability',8,3,'','')";
+// EXERCISE is multiple sessions a day (walk/physio/etc, same "inherent shape, not day
+// count" reasoning as PULSE/RESP/STEMP/HRV above) - own dedicated group/tab, not 'general'
+// (which assumes exactly one row per day). See admin/upgrades/5.0.4.php for the same INSERT.
+$xrefTypes[] = "INSERT INTO `{$X}liberty_xref_group` (`x_group`,`content_type_guid`,`title`,`sort_order`,`role_id`,`type_href`,`template`) VALUES ('exercise','healthday','Exercise',9,3,'','')";
 
 // WT — weight (kg) + BMI as xkey/xkey_ext, body composition (body_fat/water/
 // muscle/bones) as detail json. 'key-json-text' folds xkey/xkey_ext and the
@@ -171,6 +175,6 @@ $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,
 // — kept raw, including its known ~32% forgotten-stop noise, precisely so it's the
 // visible/flaggable value once the archive/history UI is in use. 'key-json-detail',
 // see PULSE above: titled xkey/xkey_ext, data offered as a collapsible block.
-$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('EXERCISE','healthday','general','Exercise',-1,13,3,'','key-json-detail','[\"duration_min\",\"source_type\",\"calorie\",\"distance\",\"mean_heart_rate\",\"max_heart_rate\",\"min_heart_rate\",\"count\",\"title\"]')";
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('EXERCISE','healthday','exercise','Exercise',-1,13,3,'','key-json-detail','[\"Type\",\"Duration (mins)\",\"Detail\"]')";
 
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );

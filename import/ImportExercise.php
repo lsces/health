@@ -32,13 +32,15 @@
  * time. Samsung's own `duration` is kept in `edit` as the trustworthy
  * cross-check instead.
  *
- * `xkey`=raw `exercise_type` code (Samsung's numeric type, e.g. "1001" for
- * Walk — never resolved to a label at import time, see
- * healthExerciseTypeLabel() for display-time mapping only),
+ * `xkey`=healthExerciseTypeLabel() text (Walk/Physio/Untagged) - resolved at
+ * import time, not display time: the generic xref view template
+ * (liberty/templates/xref/view_key-json-detail_item.tpl) has no hook for a
+ * per-item value lookup, it only shows xkey as stored. The raw Samsung
+ * exercise_type code is kept in `data` as `type_code` for reference.
  * `xkey_ext`=clock-span duration in minutes,
- * `data`=json `{duration_min (Samsung's own value, converted from ms),
- * source_type, calorie, distance, mean_heart_rate, max_heart_rate,
- * min_heart_rate, count, title}`.
+ * `data`=json `{type_code, duration_min (Samsung's own value, converted
+ * from ms), source_type, calorie, distance, mean_heart_rate,
+ * max_heart_rate, min_heart_rate, count, title}`.
  *
  * @package health
  */
@@ -49,15 +51,15 @@ use Bitweaver\Health\HealthDay;
 use Bitweaver\Liberty\LibertyXref;
 
 /**
- * Display label for an EXERCISE xkey code. Display-time mapping only — the
- * raw code is always what's stored, never this label. `12001` is Lester's
- * own account-specific custom-exercise id (Samsung assigns these per
- * account when a custom exercise is created) currently meaning "Knee
- * Physio" — it is NOT a documented standard Samsung code like `1001` is,
- * and will only keep meaning Physio as long as no second custom exercise is
- * ever defined. Every other code (confirmed in real data: `0`, `1002`,
- * `11007`, plus any future unrecognised code) deliberately merges to
- * "Untagged" rather than growing a long one-off lookup table.
+ * Text label for an EXERCISE type code — written into xkey at import time
+ * (see healthStoreExercise()). `12001` is Lester's own account-specific
+ * custom-exercise id (Samsung assigns these per account when a custom
+ * exercise is created) currently meaning "Knee Physio" — it is NOT a
+ * documented standard Samsung code like `1001` is, and will only keep
+ * meaning Physio as long as no second custom exercise is ever defined.
+ * Every other code (confirmed in real data: `0`, `1002`, `11007`, plus any
+ * future unrecognised code) deliberately merges to "Untagged" rather than
+ * growing a long one-off lookup table.
  *
  * @param  string $pType Raw exercise_type code.
  * @return string
@@ -79,7 +81,8 @@ function healthExerciseTypeLabel( string $pType ): string {
  *
  * @param  int    $pContentId       The day's HealthDay content_id.
  * @param  int    $pTimestamp       Unix timestamp of the session start (UTC).
- * @param  string $pType            Raw exercise_type code.
+ * @param  string $pType            Raw exercise_type code — resolved to a label for xkey,
+ *                                  kept as-is in $pDetail['type_code'] for reference.
  * @param  float  $pClockSpanMinutes  end_time - start_time, in minutes.
  * @param  array  $pDetail
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
@@ -101,11 +104,13 @@ function healthStoreExercise( int $pContentId, int $pTimestamp, string $pType, f
 		[ $pContentId ]
 	);
 
+	$pDetail = [ 'type_code' => $pType ] + $pDetail;
+
 	$pHash = [
 		'content_id' => $pContentId,
 		'item'       => 'EXERCISE',
 		'xorder'     => $nextXorder,
-		'xkey'       => $pType,
+		'xkey'       => healthExerciseTypeLabel( $pType ),
 		'xkey_ext'   => (string)round( $pClockSpanMinutes, 2 ),
 		'edit'       => json_encode( $pDetail ),
 		'start_date' => $pTimestamp,
