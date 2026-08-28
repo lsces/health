@@ -164,6 +164,7 @@ $gBitSmarty->assign( 'xkeyExtTitle',     $xkeyExtTitle );
 $gBitSmarty->assign( 'dataTitle',        $dataTitle );
 $gBitSmarty->assign( 'listInfo',         $_REQUEST['listInfo'] );
 $gBitSmarty->assign( 'editMode',         $editMode );
+$gBitSmarty->assign( 'canEditMode',      $gBitUser->hasPermission( 'p_health_admin' ) );
 $gBitSmarty->assign( 'editRequested',    $editRequested );
 $gBitSmarty->assign( 'historyRequested', $historyRequested );
 

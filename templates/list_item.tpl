@@ -30,6 +30,17 @@
 				</ul>
 
 				{include file="bitpackage:kernel/bitnav_range_inc.tpl" buttonLabel="Update" bumpDays=31 ownForm=false}
+
+				{if $canEditMode}
+					<ul class="pagination">
+						<li>
+							<a title="{if $editRequested}{tr}Exit edit mode{/tr}{else}{tr}Edit mode{/tr}{/if}"
+								href="list_item.php?item={$selectedItem|escape:url}&amp;from={$from|escape:url}&amp;to={$to|escape:url}{if $historyRequested}&amp;history=y{/if}{if !$editRequested}&amp;edit=y{/if}">
+								{biticon ipackage="icons" iname="edit" iexplain="Edit mode"}
+							</a>
+						</li>
+					</ul>
+				{/if}
 			</div>
 		</form>
 
@@ -63,18 +74,11 @@
 							{if $editMode}
 								<td>
 									{if !$r.is_history}
-										<form method="post" action="list_item.php" style="display:inline;"
-											onsubmit="return confirm('{tr}Archive this row?{/tr}');">
-											<input type="hidden" name="farchive" value="1" />
-											<input type="hidden" name="xref_id" value="{$r.xref_id|escape}" />
-											<input type="hidden" name="content_id" value="{$r.content_id|escape}" />
-											<input type="hidden" name="item" value="{$selectedItem|escape}" />
-											<input type="hidden" name="from" value="{$from|escape}" />
-											<input type="hidden" name="to" value="{$to|escape}" />
-											{if $editRequested}<input type="hidden" name="edit" value="y" />{/if}
-											{if $historyRequested}<input type="hidden" name="history" value="y" />{/if}
-											<button type="submit">{tr}Archive{/tr}</button>
-										</form>
+										<span class="actionicon">
+											<a title="{tr}Archive{/tr}"
+												href="list_item.php?farchive=1&amp;xref_id={$r.xref_id}&amp;content_id={$r.content_id}&amp;item={$selectedItem|escape:url}&amp;from={$from|escape:url}&amp;to={$to|escape:url}&amp;edit=y{if $historyRequested}&amp;history=y{/if}"
+												onclick="return confirm('{tr}Archive this row?{/tr}')">{biticon ipackage="icons" iname="archive-insert" iexplain="Archive"}</a>
+										</span>
 									{/if}
 								</td>
 							{/if}
