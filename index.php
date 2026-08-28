@@ -59,7 +59,7 @@ $itemSummary = healthIndexItemSummary();
 // than a separate third "combined" table — each row's own count/period
 // covered reflects just that bucket, not the item's combined range.
 $healthForYouItems = [ 'WT', 'TEMP' ];
-$samsungItems      = [ 'PULSE', 'STEPS', 'ENERGY', 'SLEEP', 'RESP', 'STEMP', 'HRV', 'STEPTRACK', 'RAISEDHR' ];
+$samsungItems      = [ 'PULSE', 'STEPS', 'ENERGY', 'SLEEP', 'RESP', 'STEMP', 'HRV', 'STEPTRACK', 'RAISEDHR', 'EXERCISE' ];
 $splitItems        = [ 'BP' => 'Blood Pressure', 'OXI' => 'Pulse Oximeter' ];
 
 $healthForYouRows = $samsungRows = [];

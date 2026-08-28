@@ -57,13 +57,14 @@ require_once __DIR__.'/ImportSteps.php';
 require_once __DIR__.'/ImportHRV.php';
 require_once __DIR__.'/ImportHRRaw.php';
 require_once __DIR__.'/ImportRaisedHR.php';
+require_once __DIR__.'/ImportExercise.php';
 require_once __DIR__.'/RebuildHRDerived.php';
 
 use Bitweaver\KernelTools;
 
 const HEALTH_SAMSUNG_EARLIEST = '2024-06-29'; // confirmed phone-acquisition date - see split_by_year.py's own PHONE_ACQUIRED
 
-/** type name (date-suffix stripped) => [importer function, needs a jsons dir]. Only CSV-plus-optional-jsons single-file importers go here - tracker.heart_rate/exercise (HR_RAW + RAISEDHR) are handled separately, both need two files together. */
+/** type name (date-suffix stripped) => [importer function, needs a jsons dir]. Only CSV-plus-optional-jsons single-file importers go here - tracker.heart_rate/exercise (HR_RAW + RAISEDHR + healthImportExercise's own EXERCISE session rows) are handled separately, below, sharing one delta CSV per source rather than three independent ones. */
 const HEALTH_SAMSUNG_TYPE_IMPORTERS = [
 	'com.samsung.shealth.blood_pressure'          => [ 'healthImportBPSamsung', false ],
 	'com.samsung.shealth.sleep'                   => [ 'healthImportSleep', false ],
@@ -377,6 +378,12 @@ function healthImportSamsung( array $pFileHash ): array {
 		$exJsonDir = HEALTH_IMPORT_PATH."history/$year/jsons/com.samsung.shealth.exercise/";
 
 		$result['types']["HEALTH_HR_RAW ($year)"] = healthImportHRRaw( $hrTmp ?? '', $hrJsonDir, $exTmp ?? '', $exJsonDir );
+
+		// EXERCISE session rows - same exercise delta CSV as HR_RAW above (its own
+		// live_data-only concern), read before it's unlinked below.
+		if( $exTmp ) {
+			$result['types']["EXERCISE ($year)"] = healthImportExercise( $exTmp );
+		}
 
 		if( $hrTmp ) unlink( $hrTmp );
 		if( $exTmp ) unlink( $exTmp );
