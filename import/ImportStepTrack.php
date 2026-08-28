@@ -14,7 +14,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.step_daily_trend.<date>.csv
  *   jsons/com.samsung.shealth.step_daily_trend/<first-char>/<uuid>.binning_data.json
- * (copy both from a health_lester_<date> split). Reuses ImportPulse.php's
+ * (copy both from a health_name_<date> split). Reuses ImportPulse.php's
  * shared Samsung CSV/binning helpers.
  *
  * `day_time` is always local midnight with no real clock-time meaning, same

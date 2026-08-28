@@ -4,7 +4,7 @@
  * export.
  *
  * Expects `temperature.csv` in HEALTH_IMPORT_PATH (storage/health/) — copy it
- * from a `healthforyou_lester_<date>/temperature.csv` split (see
+ * from a `healthforyou_name_<date>/temperature.csv` split (see
  * ~/Personal/Health/HealthForYouApp/split_healthforyou.py). Same CSV shape as
  * weight.csv/blood_pressure.csv — reuses ImportWT.php's parsing helpers.
  * Columns: Date;Time;TEMPERATURE;Mode;Added manually.

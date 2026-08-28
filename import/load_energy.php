@@ -4,7 +4,7 @@
  * shrv_value HRV figure) from Samsung Health's vitality_score export.
  *
  * Expects com.samsung.shealth.vitality_score.<date>.csv in HEALTH_IMPORT_PATH
- * (storage/health/) — copy it from a health_lester_<date> split. Safe to
+ * (storage/health/) — copy it from a health_name_<date> split. Safe to
  * re-run.
  *
  * @package health

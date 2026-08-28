@@ -61,7 +61,7 @@
  * genuinely unaffected, not just unchecked.
  *
  * Expects `com.samsung.shealth.blood_pressure.<date>.csv` in HEALTH_IMPORT_PATH
- * (storage/health/) — copy it from a `health_lester_<date>` split. Reuses
+ * (storage/health/) — copy it from a `health_name_<date>` split. Reuses
  * `healthStoreBP()` from `ImportBP.php` (the storage/dedupe logic is source-
  * agnostic) and `healthParseSamsungCsv()`/`healthFindLatestSamsungCsv()` from
  * `ImportPulse.php`.

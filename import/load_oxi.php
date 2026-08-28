@@ -4,7 +4,7 @@
  * pulse_oximeter.csv export.
  *
  * Expects the file in HEALTH_IMPORT_PATH (storage/health/) — copy it from a
- * healthforyou_lester_<date>/pulse_oximeter.csv split. Safe to re-run.
+ * healthforyou_name_<date>/pulse_oximeter.csv split. Safe to re-run.
  *
  * @package health
  */

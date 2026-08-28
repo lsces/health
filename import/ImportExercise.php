@@ -3,7 +3,7 @@
  * Import EXERCISE xref rows from Samsung Health's exercise export.
  *
  * Expects `com.samsung.shealth.exercise.<date>.csv` in HEALTH_IMPORT_PATH
- * (storage/health/) — copy it from a `health_lester_<date>` split. Only the
+ * (storage/health/) — copy it from a `health_name_<date>` split. Only the
  * session-summary columns are read here; the same file's embedded
  * `live_data` heart-rate trace is a separate concern already handled by
  * ImportHRRaw.php/ImportRaisedHR.php — no overlap, this importer never
@@ -52,7 +52,7 @@ use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Text label for an EXERCISE type code — written into xkey at import time
- * (see healthStoreExercise()). `12001` is Lester's own account-specific
+ * (see healthStoreExercise()). `12001` is the author's own account-specific
  * custom-exercise id (Samsung assigns these per account when a custom
  * exercise is created) currently meaning "Knee Physio" — it is NOT a
  * documented standard Samsung code like `1001` is, and will only keep

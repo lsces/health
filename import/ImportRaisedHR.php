@@ -27,13 +27,13 @@
  *
  * **Not** Samsung's own exercise.hr_zone thresholds (139/150/164 — generic
  * sports-training zones, would read ~0 minutes almost every day). Real
- * basis is medical/personal: GP-approved is >90bpm, Lester's own working
+ * basis is medical/personal: GP-approved is >90bpm, the author's own working
  * target is >100bpm — both computed side by side for direct comparison.
  *
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs (PULSE's source)
  *   com.samsung.shealth.exercise.<date>.csv + its jsons/ blobs (exercise live_data)
- * (copy all four from a health_lester_<date> split). Reuses ImportPulse.php's
+ * (copy all four from a health_name_<date> split). Reuses ImportPulse.php's
  * shared Samsung CSV/binning helpers.
  *
  * **Gap caps differ by source, not one constant for both** — exercise
@@ -64,7 +64,7 @@ use Bitweaver\Liberty\LibertyXref;
 const HEALTH_RAISEDHR_EXERCISE_GAP_CAP   = 10;  // seconds; live_data runs ~1s apart
 const HEALTH_RAISEDHR_BACKGROUND_GAP_CAP = 90;  // seconds; tracker.heart_rate bins run 60s apart
 const HEALTH_RAISEDHR_THRESHOLD_LOW      = 90.0;  // GP-approved
-const HEALTH_RAISEDHR_THRESHOLD_HIGH     = 100.0; // Lester's own working target
+const HEALTH_RAISEDHR_THRESHOLD_HIGH     = 100.0; // the author's own working target
 const HEALTH_RAISEDHR_THRESHOLD_TOP      = 130.0; // third tier, detail-only (not a headline xkey/xkey_ext slot)
 
 /**

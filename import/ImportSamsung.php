@@ -256,7 +256,7 @@ function healthImportSamsung( array $pFileHash ): array {
 	}
 
 	// Samsung's own export nests everything one level down, under the
-	// archive's own folder name (samsunghealth_lester_<date>/) - find it
+	// archive's own folder name (samsunghealth_name_<date>/) - find it
 	// rather than assume the exact name.
 	$root = $destDir;
 	$entries = array_values( array_diff( scandir( $destDir ) ?: [], [ '.', '..' ] ) );

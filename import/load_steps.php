@@ -4,7 +4,7 @@
  * activity.day_summary export.
  *
  * Expects com.samsung.shealth.activity.day_summary.<date>.csv in
- * HEALTH_IMPORT_PATH (storage/health/) — copy it from a health_lester_<date>
+ * HEALTH_IMPORT_PATH (storage/health/) — copy it from a health_name_<date>
  * split. Safe to re-run.
  *
  * @package health

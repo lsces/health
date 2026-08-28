@@ -5,7 +5,7 @@
  * the reasoning behind reusing OXI rather than a separate item.
  *
  * Expects com.samsung.shealth.tracker.oxygen_saturation.<date>.csv in
- * HEALTH_IMPORT_PATH (storage/health/) — copy it from a health_lester_<date>
+ * HEALTH_IMPORT_PATH (storage/health/) — copy it from a health_name_<date>
  * split. Safe to re-run, and safe to run alongside/after load_oxi.php
  * (HealthForYou) — both dedupe via minute-level start_date, so genuinely
  * overlapping readings correctly skip regardless of which importer ran

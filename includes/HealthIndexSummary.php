@@ -64,7 +64,7 @@ function healthIndexItemSummary(): array {
  *
  * Returns count + date range per bucket (not just count) so each half can
  * be listed as its own row in index.php's HealthForYou/Samsung Health
- * sections — Lester's own call: the cuff/watch split matters enough to
+ * sections — the author's own call: the cuff/watch split matters enough to
  * show natively in each app's own section (with that bucket's *own* real
  * period covered, not the item's combined range), not just as a separate
  * third "combined" table.

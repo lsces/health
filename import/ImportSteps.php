@@ -4,7 +4,7 @@
  * Health's activity.day_summary export.
  *
  * Expects `com.samsung.shealth.activity.day_summary.<date>.csv` in
- * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_lester_<date>`
+ * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_name_<date>`
  * split (see ~/Personal/Health/Samsung Health/split_health.sh). Picks the
  * most recent date suffix present, same idea as ImportPulse.php's own
  * "find latest" helper, generalised there for this file to reuse.

@@ -6,7 +6,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.health.respiratory_rate.<date>.csv
  *   jsons/com.samsung.health.respiratory_rate/<first-char>/<uuid>.binning_data.json
- * (copy both from a health_lester_<date> split). Same shape as PULSE
+ * (copy both from a health_name_<date> split). Same shape as PULSE
  * (ImportPulse.php) — reuses its healthParseSamsungCsv()/healthLoadBinningData()/
  * healthFindLatestSamsungCsv() helpers rather than duplicating them.
  *

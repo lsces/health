@@ -21,7 +21,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs
  *   com.samsung.shealth.exercise.<date>.csv + its jsons/ blobs (live_data only needed)
- * (copy all four from a health_lester_<date> split). Reuses ImportPulse.php's
+ * (copy all four from a health_name_<date> split). Reuses ImportPulse.php's
  * shared Samsung CSV/binning helpers.
  *
  * @package health

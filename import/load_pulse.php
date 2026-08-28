@@ -7,7 +7,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv
  *   jsons/com.samsung.shealth.tracker.heart_rate/<first-char>/<uuid>....json
- * (copy both from a health_lester_<date> split). Safe to re-run.
+ * (copy both from a health_name_<date> split). Safe to re-run.
  *
  * @package health
  */

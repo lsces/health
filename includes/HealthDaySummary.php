@@ -78,7 +78,7 @@ function healthDaySummaryWT( int $pContentId ): ?array {
  * the same all-rows-in-PHP approach healthDaySummaryWT() already uses.
  *
  * Also splits the day into three fixed local-time slots - pre-9AM
- * ('morning'), 9AM-4PM ('midday', normally sparse - Lester's post-physio
+ * ('morning'), 9AM-4PM ('midday', normally sparse - the author's post-physio
  * readings are the main real case), post-4PM ('evening') - each reduced to
  * its own average, not a range (a slot's whole point is "one representative
  * figure for that part of the day", unlike the day-wide min/max which is
@@ -322,12 +322,12 @@ function healthDaySummaryHRV( int $pContentId ): ?array {
  * "Score: 78, Duration: 6h 32m (2 sessions)" - the Summary tab's Sleep
  * line. Score comes from ENERGY's own `sleep_score` (vitality_score's
  * composite figure), NOT a pick/blend of SLEEP's own per-session scores -
- * Lester's own call: the SLEEP item's sessions record different, sometimes
+ * the author's own call: the SLEEP item's sessions record different, sometimes
  * overlapping periods through the night and their scores "aren't totally
  * reliable" as a single day figure. Duration IS still built from the real
  * SLEEP sessions though - summed across however many exist that day, even
  * though summing overlapping/adjacent sessions isn't strictly accurate
- * either - Lester's own explicit acceptance ("even if it isn't accurate")
+ * either - the author's own explicit acceptance ("even if it isn't accurate")
  * of a rough duration over no duration at all. Returns null if there's
  * neither an ENERGY sleep_score nor any SLEEP session that day.
  */
@@ -378,7 +378,7 @@ function healthDaySummarySleep( int $pContentId ): array {
  * ENERGY day-summary: already one row per day at import time (see
  * ImportEnergy.php), so this is just a plain fetch, no reduction needed.
  * Its four figures cover the Summary tab's best answer for four different
- * rows, not just its own "Energy" line (Lester's own framing, 2026-08-24):
+ * rows, not just its own "Energy" line (the author's own framing, 2026-08-24):
  * `total_score` is Energy, `shrv_value` is HRV, and `detail`'s
  * `sleep_score`/`activity_score` feed the Sleep/Steps lines respectively
  * (see healthFormatSleepLine()/healthFormatStepsLine()) - ENERGY turns out
@@ -432,7 +432,7 @@ function healthDaySummarySteps( int $pContentId ): ?array {
 
 /**
  * "Step: 8,321, 45m, 320K" - Calendar day-cell's compact Steps line (added
- * 2026-08-24, Lester's own trim): count/active-mins/active-kcal only, no
+ * 2026-08-24, the author's own trim): count/active-mins/active-kcal only, no
  * Activity (that stays Summary-tab-only, see healthFormatStepsLine()) and
  * no field labels beyond "Step:" - "m"/"K" suffixed straight onto the
  * number instead of "Mins:"/"Kcal:" prefixes, specifically so the whole
@@ -450,7 +450,7 @@ function healthFormatStepsLineCompact( ?array $pSteps ): ?string {
  * "Count: 8321, Mins: 45, Kcal: 320, Activity: 78" - Summary tab's fuller
  * Steps line: Steps' own count/active-mins/active-kcal plus ENERGY's
  * activity_score folded onto the same line, rather than Activity getting a
- * row of its own - Lester's own call, 2026-08-24. Either half can be
+ * row of its own - the author's own call, 2026-08-24. Either half can be
  * missing (a day with STEPS but no ENERGY row, or vice versa) - whichever
  * parts exist are shown, nothing shown as zero. Returns null if there's
  * nothing at all to show. The Calendar day-cell uses the more compact

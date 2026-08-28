@@ -6,7 +6,7 @@
  *   (HealthDay::getDayCellHtml(): WT's headline weight, BP count, RAISEDHR's
  *   cached true HR min/max) but as a real page section rather than a tiny
  *   tile. Not yet pulling each item's own `data` json detail (body
- *   composition, calibration_id, etc.) - todo, per Lester's own framing:
+ *   composition, calibration_id, etc.) - todo, per the author's own framing:
  *   "pad out later with bits hidden in detail."
  *
  *   "Data" — the generic liberty xref-group framework food/stock/contact
@@ -84,7 +84,7 @@ if( $bp ) {
 // for four of these rows, not just its own line - total_score->Energy,
 // shrv_value->HRV, and detail's sleep_score/activity_score feed the
 // Sleep/Steps lines instead of SLEEP's own per-session scores or a bare
-// Activity row (Lester's own framing, 2026-08-24). See
+// Activity row (the author's own framing, 2026-08-24). See
 // healthFormatSleepLine()/healthFormatStepsLine() docblocks for the reasoning.
 $energy   = healthDaySummaryEnergy( $contentId );
 $steps    = healthDaySummarySteps( $contentId );

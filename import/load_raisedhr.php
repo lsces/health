@@ -9,7 +9,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv + its jsons/ blobs
  *   com.samsung.shealth.exercise.<date>.csv + its jsons/ blobs
- * (copy all four from a health_lester_<date> split — the first pair is the
+ * (copy all four from a health_name_<date> split — the first pair is the
  * same files PULSE uses). Safe to re-run.
  *
  * @package health

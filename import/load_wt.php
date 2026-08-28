@@ -3,7 +3,7 @@
  * Import WT (weight/BMI/body-composition) from a HealthForYou weight.csv export.
  *
  * Expects the file in HEALTH_IMPORT_PATH (storage/health/) — copy it from a
- * healthforyou_lester_<date>/weight.csv split (see
+ * healthforyou_name_<date>/weight.csv split (see
  * ~/Personal/Health/HealthForYouApp/split_healthforyou.py). Safe to re-run,
  * see ImportWT.php's own docblock.
  *

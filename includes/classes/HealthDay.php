@@ -207,7 +207,7 @@ class HealthDay extends LibertyContent {
 	 * count (fixed 2026-08-24, see HealthDaySummary.php's own docblock for
 	 * the slot breakdown this shares its formatting with). A day with zero
 	 * BP readings still gets a "No BP records" line, not an omitted row -
-	 * Lester's own call, so every rendered tile keeps the same line count/
+	 * the author's own call, so every rendered tile keeps the same line count/
 	 * layout rather than BP-free days looking shorter (fixed same day).
 	 *
 	 * Pulse range comes from RAISEDHR's own cached `hr_min`/`hr_max` (see
@@ -250,7 +250,7 @@ class HealthDay extends LibertyContent {
 		$hasRaisedHr = is_array( $raisedHr ) && isset( $raisedHr['hr_min'], $raisedHr['hr_max'] );
 
 		// Steps: compact "Step: 8,321, 45m, 320K" bottom line (no Activity,
-		// no field-name prefixes on Mins/Kcal - Lester's own trim, 2026-08-24,
+		// no field-name prefixes on Mins/Kcal - the author's own trim, 2026-08-24,
 		// specifically to keep it to one line on the cell; see
 		// healthFormatStepsLineCompact()'s own docblock). Its presence also
 		// counts towards whether the tile renders at all - a step-only day

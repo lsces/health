@@ -6,7 +6,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.shealth.tracker.heart_rate.<date>.csv
  *   jsons/com.samsung.shealth.tracker.heart_rate/<first-char>/<uuid>.com.samsung.health.heart_rate.binning_data.json
- * (copy both from a health_lester_<date> split — see
+ * (copy both from a health_name_<date> split — see
  * ~/Personal/Health/Samsung Health/split_health.sh). Picks the most recent date
  * suffix present on the CSV, same "find latest export" idea as Food's own
  * importers, just simpler (one file type, not a paired set).

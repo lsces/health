@@ -1,11 +1,11 @@
 <?php
 /**
  * Printable date-range report — one row per day between two dates, the
- * handful of figures Lester actually wants on paper for a doctor's
+ * handful of figures the author actually wants on paper for a doctor's
  * appointment: Weight, Pulse (average + range), Blood Pressure (morning +
  * evening slot averages), HRV. Deliberately not the full Summary tab
  * (Energy/Sleep/Steps omitted) — a focused clinical printout, not a data
- * dump. First pass per Lester's own framing ("once I see it on paper I
+ * dump. First pass per the author's own framing ("once I see it on paper I
  * can tweak it") — expect this to be revised after a real look, not a
  * finished spec.
  *

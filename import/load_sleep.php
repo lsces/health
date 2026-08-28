@@ -5,7 +5,7 @@
  * night handling and BST/GMT resolution.
  *
  * Expects com.samsung.shealth.sleep.<date>.csv in HEALTH_IMPORT_PATH
- * (storage/health/) — copy it from a health_lester_<date> split. Safe to
+ * (storage/health/) — copy it from a health_name_<date> split. Safe to
  * re-run.
  *
  * @package health

@@ -3,7 +3,7 @@
  * Variant of report_range.php with the same one-row-per-day layout, but the
  * BP Morning/Evening cells list every individual reading in that slot
  * instead of collapsing to a single average — built specifically to make
- * short-interval variability visible: with Lester's arrhythmia, readings
+ * short-interval variability visible: with the author's arrhythmia, readings
  * only minutes apart can genuinely disagree, which the slot average hides.
  * Weight/Pulse/HRV columns are identical to report_range.php, reusing the
  * same day-summary helpers.

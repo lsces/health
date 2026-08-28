@@ -80,7 +80,7 @@ foreach( $itemSummary as $item => $row ) {
 
 // "Last Download" per section — the most recent reading actually imported
 // from that app, shown next to the section heading so staleness is
-// visible at a glance (prompted by Lester's own upcoming HFY-only
+// visible at a glance (prompted by the author's own upcoming HFY-only
 // re-download, watch BP out of calibration).
 $healthForYouMax = array_filter( array_column( $healthForYouRows, 'max_date' ) );
 $samsungMax      = array_filter( array_column( $samsungRows, 'max_date' ) );

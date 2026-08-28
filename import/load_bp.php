@@ -4,7 +4,7 @@
  * blood_pressure.csv export (cuff source only — see ImportBP.php's docblock).
  *
  * Expects the file in HEALTH_IMPORT_PATH (storage/health/) — copy it from a
- * healthforyou_lester_<date>/blood_pressure.csv split (see
+ * healthforyou_name_<date>/blood_pressure.csv split (see
  * ~/Personal/Health/HealthForYouApp/split_healthforyou.py). Safe to re-run.
  *
  * @package health

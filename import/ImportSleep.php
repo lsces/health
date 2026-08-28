@@ -3,7 +3,7 @@
  * Import SLEEP xref rows from Samsung Health's sleep export.
  *
  * Expects `com.samsung.shealth.sleep.<date>.csv` in HEALTH_IMPORT_PATH
- * (storage/health/) — copy it from a `health_lester_<date>` split.
+ * (storage/health/) — copy it from a `health_name_<date>` split.
  *
  * **One row per sleep *session*, not per day** — checked real data first: a
  * single night can have several sleep rows (a real example: 27→28/06/2026

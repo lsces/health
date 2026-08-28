@@ -4,11 +4,11 @@
  * Samsung Health's vitality_score export.
  *
  * Expects `com.samsung.shealth.vitality_score.<date>.csv` in
- * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_lester_<date>`
+ * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_name_<date>`
  * split. One row per calendar day (`day_time`, always midnight — no real
  * clock-time, no BST handling needed, same as STEPS).
  *
- * **Folds in Lester's "interesting variation" — HRV doesn't need its own
+ * **Folds in the author's "interesting variation" — HRV doesn't need its own
  * import after all.** `vitality_score`'s own `shrv_value`/`shrv_score`
  * fields ("sleep HRV") ride along in the exact same row as `total_score`
  * (Energy) — confirmed against the source spreadsheet: `shrv_value` for

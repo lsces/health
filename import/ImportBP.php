@@ -4,7 +4,7 @@
  * blood_pressure.csv export.
  *
  * Expects `blood_pressure.csv` in HEALTH_IMPORT_PATH (storage/health/) — copy it
- * from a `healthforyou_lester_<date>/blood_pressure.csv` split (see
+ * from a `healthforyou_name_<date>/blood_pressure.csv` split (see
  * ~/Personal/Health/HealthForYouApp/split_healthforyou.py). Same CSV shape as
  * weight.csv (semicolon-delimited, UK dd/mm/yyyy dates) — reuses
  * healthParseHealthForYouCsv()/healthParseHealthForYouTimestamp() from
@@ -24,7 +24,7 @@
  * deferred, not forgotten.
  *
  * Every row is imported as its own BP xref row — even the "reliable" cuff
- * source shows real short-interval variability given Lester's arrhythmia, so
+ * source shows real short-interval variability given the author's arrhythmia, so
  * no daily reduction here either, same as WT/PULSE.
  *
  * @package health

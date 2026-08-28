@@ -3,7 +3,7 @@
  * Import TEMP (ear temperature) from a HealthForYou temperature.csv export.
  *
  * Expects the file in HEALTH_IMPORT_PATH (storage/health/) — copy it from a
- * healthforyou_lester_<date>/temperature.csv split. Safe to re-run.
+ * healthforyou_name_<date>/temperature.csv split. Safe to re-run.
  *
  * @package health
  */

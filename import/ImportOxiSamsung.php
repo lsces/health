@@ -13,7 +13,7 @@
  * watch/cuff split the way BP has.
  *
  * Expects `com.samsung.shealth.tracker.oxygen_saturation.<date>.csv` in
- * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_lester_<date>`
+ * HEALTH_IMPORT_PATH (storage/health/) — copy it from a `health_name_<date>`
  * split. Reuses `healthStoreOxi()` from `ImportOxi.php` (the storage/dedupe
  * logic is source-agnostic) and `healthParseSamsungCsv()`/
  * `healthFindLatestSamsungCsv()` from `ImportPulse.php`, same pattern

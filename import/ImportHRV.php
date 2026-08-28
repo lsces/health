@@ -10,7 +10,7 @@
  * Expects, in HEALTH_IMPORT_PATH (storage/health/):
  *   com.samsung.health.hrv.<date>.csv
  *   jsons/com.samsung.health.hrv/<first-char>/<uuid>.binning_data.json
- * (copy both from a health_lester_<date> split). Same shape as PULSE
+ * (copy both from a health_name_<date> split). Same shape as PULSE
  * (ImportPulse.php) — reuses its shared Samsung CSV/binning helpers.
  *
  * **Only CSV rows carrying a binning_data filename are imported**, same

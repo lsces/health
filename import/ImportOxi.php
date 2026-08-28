@@ -4,7 +4,7 @@
  * HealthForYou pulse_oximeter.csv export.
  *
  * Expects `pulse_oximeter.csv` in HEALTH_IMPORT_PATH (storage/health/) — copy
- * it from a `healthforyou_lester_<date>/pulse_oximeter.csv` split (see
+ * it from a `healthforyou_name_<date>/pulse_oximeter.csv` split (see
  * ~/Personal/Health/HealthForYouApp/split_healthforyou.py). Same CSV shape as
  * weight.csv/blood_pressure.csv (semicolon-delimited, UK dd/mm/yyyy dates) —
  * reuses ImportWT.php's parsing helpers rather than duplicating them.
