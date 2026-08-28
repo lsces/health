@@ -33,11 +33,13 @@
 
 				{if $canEditMode}
 					<ul class="pagination">
-						<li>
-							<a title="{if $editRequested}{tr}Exit edit mode{/tr}{else}{tr}Edit mode{/tr}{/if}"
-								href="list_item.php?item={$selectedItem|escape:url}&amp;from={$from|escape:url}&amp;to={$to|escape:url}{if $historyRequested}&amp;history=y{/if}{if !$editRequested}&amp;edit=y{/if}">
-								{biticon ipackage="icons" iname="edit" iexplain="Edit mode"}
-							</a>
+						{* No nested <form> - this button submits the page's one enclosing form
+						   (line 7 above), same "ownForm=false" convention bitnav_range_inc.tpl's
+						   own Update button already uses. A <button name=value> only sends that
+						   pair when it's the control that triggered the submit, so this alone
+						   toggles edit= without needing its own hidden-field set. *}
+						<li class="bitnav-gap">
+							<button type="submit" name="edit" value="{if $editRequested}{else}y{/if}">{if $editRequested}{tr}Exit Edit{/tr}{else}{tr}Edit{/tr}{/if}</button>
 						</li>
 					</ul>
 				{/if}
