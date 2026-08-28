@@ -14,6 +14,13 @@
 						{$i.cross_ref_title|escape}
 					</label>
 				{/foreach}
+				<label style="margin-left:1em;">
+					<input type="checkbox" name="history" value="y"
+						{if $historyRequested}checked="checked"{/if}
+						onchange="this.form.submit()" />
+					{tr}Show history{/tr}
+				</label>
+				{if $editRequested}<input type="hidden" name="edit" value="y" />{/if}
 			</p>
 			<noscript><p><input type="submit" value="{tr}Show{/tr}" /></p></noscript>
 
@@ -36,11 +43,12 @@
 							<th>{$xkeyTitle|escape}</th>
 							<th>{$xkeyExtTitle|escape}</th>
 							<th>{$dataTitle|escape}</th>
+							{if $editMode}<th>{tr}Action{/tr}</th>{/if}
 						</tr>
 					</thead>
 					<tbody>
 						{foreach $rows as $r}
-						<tr>
+						<tr{if $r.is_history} style="background-color:#ffe0e0;"{/if}>
 							<td>{$r.day_title|escape}</td>
 							<td>{$r.time|escape}</td>
 							<td>{$r.xkey|escape}</td>
@@ -52,6 +60,24 @@
 									{$r.data|escape}
 								{/if}
 							</td>
+							{if $editMode}
+								<td>
+									{if !$r.is_history}
+										<form method="post" action="list_item.php" style="display:inline;"
+											onsubmit="return confirm('{tr}Archive this row?{/tr}');">
+											<input type="hidden" name="farchive" value="1" />
+											<input type="hidden" name="xref_id" value="{$r.xref_id|escape}" />
+											<input type="hidden" name="content_id" value="{$r.content_id|escape}" />
+											<input type="hidden" name="item" value="{$selectedItem|escape}" />
+											<input type="hidden" name="from" value="{$from|escape}" />
+											<input type="hidden" name="to" value="{$to|escape}" />
+											{if $editRequested}<input type="hidden" name="edit" value="y" />{/if}
+											{if $historyRequested}<input type="hidden" name="history" value="y" />{/if}
+											<button type="submit">{tr}Archive{/tr}</button>
+										</form>
+									{/if}
+								</td>
+							{/if}
 						</tr>
 						{/foreach}
 					</tbody>
