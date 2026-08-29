@@ -13,6 +13,7 @@
 
 namespace Bitweaver\Health;
 
+
 /**
  * WT day-summary: the lowest AM (before noon, Europe/London local) weight
  * reading, preferring one with a successful body-composition scan over one
@@ -34,7 +35,8 @@ function healthDaySummaryWT( int $pContentId ): ?array {
 		return null;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$amRows = [];
 	foreach( $rows as $row ) {
 		$local = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
@@ -102,7 +104,8 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 		return null;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$slotRows = [ 'morning' => [], 'midday' => [], 'evening' => [] ];
 	$sys = [];
 	$dia = [];

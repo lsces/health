@@ -18,12 +18,12 @@ use Bitweaver\KernelTools;
 require_once '../kernel/includes/setup_inc.php';
 require_once __DIR__.'/includes/HealthDaySummary.php';
 
-global $gBitSystem, $gBitSmarty, $gBitDb;
+global $gBitSystem, $gBitSmarty, $gBitDb, $gBitUser;
 
 $gBitSystem->verifyPackage( 'health' );
 $gBitSystem->verifyPermission( 'p_health_view' );
 
-$today = new \DateTime( 'today', new \DateTimeZone( 'Europe/London' ) );
+$today = new \DateTime( 'today', $gBitUser->getUserTimezone() );
 $defaultFrom = ( clone $today )->modify( '-6 days' )->format( 'Y-m-d' );
 $defaultTo   = $today->format( 'Y-m-d' );
 

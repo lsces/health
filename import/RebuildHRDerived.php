@@ -41,7 +41,8 @@ use Bitweaver\Health\HealthDay;
  */
 function healthRebuildFetchDayRows( string $pDate ): array {
 	global $gBitDb;
-	$tz  = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz  = $gBitUser->getUserTimezone();
 	$utc = new \DateTimeZone( 'UTC' );
 	$start = new \DateTime( $pDate.' 00:00:00', $tz );
 	$end   = ( clone $start )->modify( '+1 day' );
@@ -93,7 +94,8 @@ function healthRebuildDeleteDayItem( int $pContentId, string $pItem ): void {
  * @return int  Slots created.
  */
 function healthRebuildDayPulse( int $pContentId, array $pRows ): int {
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$slots = []; // slotKey => [ 'slotStart' => unix ts, 'bins' => [...] ]
 
 	foreach( $pRows as $r ) {
@@ -139,7 +141,8 @@ function healthRebuildDayPulse( int $pContentId, array $pRows ): int {
  * @return bool  TRUE if a row was written.
  */
 function healthRebuildDayRaisedHR( int $pContentId, string $pDate, array $pRows ): bool {
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$exercise = $background = [];
 	foreach( $pRows as $r ) {
 		if( $r['source'] === 'exercise' ) {
@@ -207,7 +210,8 @@ function healthRebuildDay( string $pDate ): array {
  * @return array{daysProcessed:int, totalPulseSlots:int, totalRaisedHr:int, firstDate:?string, lastDate:?string}
  */
 function healthRebuildDateRange( string $pFrom, string $pTo ): array {
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$cursor = new \DateTime( $pFrom, $tz );
 	$last   = new \DateTime( $pTo, $tz );
 
@@ -247,7 +251,8 @@ function healthRebuildDateRange( string $pFrom, string $pTo ): array {
  * @return array{daysProcessed:int, totalPulseSlots:int, totalRaisedHr:int, firstDate:?string, lastDate:?string}
  */
 function healthRebuildRecentDays( int $pDays ): array {
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$cursor = new \DateTime( 'today', $tz );
 	$cursor->modify( '-'.( $pDays - 1 ).' days' );
 	$last = new \DateTime( 'today', $tz );
@@ -294,7 +299,8 @@ function healthRebuildAllDays(): array {
 		return [ 'daysProcessed' => 0, 'totalPulseSlots' => 0, 'totalRaisedHr' => 0, 'firstDate' => null, 'lastDate' => null ];
 	}
 
-	$tz  = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz  = $gBitUser->getUserTimezone();
 	$utc = new \DateTimeZone( 'UTC' );
 	$cursor = ( new \DateTime( $range['min_ts'], $utc ) )->setTimezone( $tz );
 	$cursor->setTime( 0, 0, 0 );

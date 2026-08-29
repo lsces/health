@@ -94,7 +94,8 @@ function healthImportRespiratoryRate( string $pCsvFile, string $pJsonBaseDir ): 
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$slots = [];
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $row ) {

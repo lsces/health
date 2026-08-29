@@ -96,7 +96,8 @@ function healthImportHRV( string $pCsvFile, string $pJsonBaseDir ): array {
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$slots = [];
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $row ) {

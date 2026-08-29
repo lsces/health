@@ -88,7 +88,8 @@ function healthImportStepTrack( string $pCsvFile, string $pJsonBaseDir ): array 
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $row ) {
 		$filename = trim( $row['binning_data'] ?? '' );

@@ -58,7 +58,8 @@ function healthParseHealthForYouCsv( string $pFile ): array {
  * @return array{0:string,1:int}|null  [ 'YYYY-MM-DD', unix timestamp ], or null if unparseable.
  */
 function healthParseHealthForYouTimestamp( string $pDate, string $pTime ): ?array {
-	$dt = \DateTime::createFromFormat( 'd/m/Y h:i a', $pDate.' '.strtolower( $pTime ), new \DateTimeZone( 'Europe/London' ) );
+	global $gBitUser;
+	$dt = \DateTime::createFromFormat( 'd/m/Y h:i a', $pDate.' '.strtolower( $pTime ), $gBitUser->getUserTimezone() );
 	if( !$dt ) {
 		return null;
 	}

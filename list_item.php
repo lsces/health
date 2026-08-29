@@ -131,7 +131,7 @@ if( $selectedItem !== '' ) {
 		// array items behind a <details> disclosure in the template, summary
 		// text only, rather than truncating the string (which would just cut
 		// valid JSON mid-object).
-		$tz = new \DateTimeZone( 'Europe/London' );
+		$tz = $gBitUser->getUserTimezone();
 		foreach( $rows as &$row ) {
 			$decoded = json_decode( (string)$row['data'], true );
 			$row['data_summary'] = ( is_array( $decoded ) && count( $decoded ) > 3 )

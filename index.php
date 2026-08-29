@@ -23,7 +23,7 @@ use Bitweaver\KernelTools;
 require_once '../kernel/includes/setup_inc.php';
 require_once __DIR__.'/includes/HealthIndexSummary.php';
 
-global $gBitSystem, $gBitSmarty, $gBitDb;
+global $gBitSystem, $gBitSmarty, $gBitDb, $gBitUser;
 
 $gBitSystem->verifyPackage( 'health' );
 $gBitSystem->verifyPermission( 'p_health_view' );
@@ -125,7 +125,7 @@ $gBitSmarty->assign( 'samsungUploads',      $samsungUploads );
 // Reports section (General tab) — a shared From/To period selector feeding a list of report
 // pages, each with its own View/Print button - a future report just adds another row here,
 // each targeting its own URL via the row button's own formaction.
-$reportToday      = new \DateTime( 'today', new \DateTimeZone( 'Europe/London' ) );
+$reportToday      = new \DateTime( 'today', $gBitUser->getUserTimezone() );
 $gBitSmarty->assign( 'reportFrom', ( clone $reportToday )->modify( '-6 days' )->format( 'Y-m-d' ) );
 $gBitSmarty->assign( 'reportTo',   $reportToday->format( 'Y-m-d' ) );
 $gBitSmarty->assign( 'healthReports', [

@@ -220,7 +220,8 @@ function healthRaisedHRParseBackground( string $pCsvFile, string $pJsonBaseDir, 
 		return [ 'byDay' => $byDay, 'rowsNoBinning' => 0, 'errors' => [ "Can't read $pCsvFile" ] ];
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 	$binsByDay = []; // date => [ [heart_rate, start_time], ... ]
 
 	foreach( healthParseSamsungCsv( $pCsvFile ) as $row ) {
@@ -277,7 +278,8 @@ function healthRaisedHRParseBackground( string $pCsvFile, string $pJsonBaseDir, 
  * @return array{created:int,skipped:int,rowsNoBinning:int,errors:string[]}
  */
 function healthImportRaisedHR( string $pPulseCsvFile, string $pPulseJsonDir, string $pExerciseCsvFile, string $pExerciseJsonDir ): array {
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 
 	$exercise = healthRaisedHRParseExercise( $pExerciseCsvFile, $pExerciseJsonDir );
 	$windowsByDay = array_map( fn( $d ) => $d['windows'] ?? [], $exercise['byDay'] );

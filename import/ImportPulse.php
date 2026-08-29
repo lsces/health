@@ -219,7 +219,8 @@ function healthImportPulse( string $pCsvFile, string $pJsonBaseDir ): array {
 		return $result;
 	}
 
-	$tz = new \DateTimeZone( 'Europe/London' );
+	global $gBitUser;
+	$tz = $gBitUser->getUserTimezone();
 
 	// slotKey => [ 'date' => 'Y-m-d', 'slotStart' => unix ts, 'bins' => [...] ]
 	$slots = [];
