@@ -33,7 +33,7 @@
 require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Insert a STEPTRACK xref row for one day, unless one already exists for
@@ -47,29 +47,11 @@ use Bitweaver\Liberty\LibertyXref;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreStepTrack( int $pContentId, int $pDayStart, int $pTotalSteps, int $pPeakCount, array $pBins ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pDayStart );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'STEPTRACK' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'STEPTRACK',
-		'xorder'     => 0,
-		'xkey'       => (string)$pTotalSteps,
-		'xkey_ext'   => (string)$pPeakCount,
-		'edit'       => json_encode( $pBins ),
-		'start_date' => $pDayStart,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'STEPTRACK', $pDayStart, [
+		'xkey'     => (string)$pTotalSteps,
+		'xkey_ext' => (string)$pPeakCount,
+		'edit'     => json_encode( $pBins ),
+	] );
 }
 
 /**

@@ -32,7 +32,7 @@
 require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Insert a RESP xref row for one half-hour slot, unless one already exists
@@ -47,34 +47,11 @@ use Bitweaver\Liberty\LibertyXref;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreRespSlot( int $pContentId, int $pSlotStart, float $pAverage, float $pLow, float $pHigh, array $pBins ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pSlotStart );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RESP' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$nextXorder = (int)$gBitDb->getOne(
-		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RESP'",
-		[ $pContentId ]
-	);
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'RESP',
-		'xorder'     => $nextXorder,
-		'xkey'       => (string)round( $pAverage, 1 ),
-		'xkey_ext'   => json_encode( [ 'low' => $pLow, 'high' => $pHigh ] ),
-		'edit'       => json_encode( $pBins ),
-		'start_date' => $pSlotStart,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'RESP', $pSlotStart, [
+		'xkey'     => (string)round( $pAverage, 1 ),
+		'xkey_ext' => json_encode( [ 'low' => $pLow, 'high' => $pHigh ] ),
+		'edit'     => json_encode( $pBins ),
+	] );
 }
 
 /**

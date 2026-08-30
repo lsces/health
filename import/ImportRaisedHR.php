@@ -59,7 +59,7 @@
 require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 const HEALTH_RAISEDHR_EXERCISE_GAP_CAP   = 10;  // seconds; live_data runs ~1s apart
 const HEALTH_RAISEDHR_BACKGROUND_GAP_CAP = 90;  // seconds; tracker.heart_rate bins run 60s apart
@@ -79,29 +79,11 @@ const HEALTH_RAISEDHR_THRESHOLD_TOP      = 130.0; // third tier, detail-only (no
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreRaisedHR( int $pContentId, int $pDayStart, float $pMinsLow, float $pMinsHigh, array $pDetail ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pDayStart );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'RAISEDHR',
-		'xorder'     => 0,
-		'xkey'       => (string)round( $pMinsLow, 1 ),
-		'xkey_ext'   => (string)round( $pMinsHigh, 1 ),
-		'edit'       => json_encode( $pDetail ),
-		'start_date' => $pDayStart,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'RAISEDHR', $pDayStart, [
+		'xkey'     => (string)round( $pMinsLow, 1 ),
+		'xkey_ext' => (string)round( $pMinsHigh, 1 ),
+		'edit'     => json_encode( $pDetail ),
+	] );
 }
 
 /**

@@ -35,7 +35,7 @@
 require_once __DIR__.'/ImportPulse.php'; // shared Samsung CSV/binning helpers
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Insert an HRV xref row for one half-hour slot, unless one already exists
@@ -49,34 +49,11 @@ use Bitweaver\Liberty\LibertyXref;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreHRVSlot( int $pContentId, int $pSlotStart, float $pAvgSdnn, float $pAvgRmssd, array $pBins ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pSlotStart );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'HRV' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$nextXorder = (int)$gBitDb->getOne(
-		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'HRV'",
-		[ $pContentId ]
-	);
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'HRV',
-		'xorder'     => $nextXorder,
-		'xkey'       => (string)round( $pAvgSdnn, 2 ),
-		'xkey_ext'   => (string)round( $pAvgRmssd, 2 ),
-		'edit'       => json_encode( $pBins ),
-		'start_date' => $pSlotStart,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'HRV', $pSlotStart, [
+		'xkey'     => (string)round( $pAvgSdnn, 2 ),
+		'xkey_ext' => (string)round( $pAvgRmssd, 2 ),
+		'edit'     => json_encode( $pBins ),
+	] );
 }
 
 /**
