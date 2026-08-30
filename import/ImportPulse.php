@@ -42,7 +42,7 @@
  */
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 const HEALTH_PULSE_SLOT_SECONDS = 1800; // half hour
 
@@ -171,11 +171,34 @@ function healthLoadBinningData( string $pJsonBaseDir, string $pFilename ): array
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStorePulseSlot( int $pContentId, int $pSlotStart, float $pAverage, float $pLow, float $pHigh, array $pBins ): bool {
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'PULSE', $pSlotStart, [
-		'xkey'     => (string)round( $pAverage, 1 ),
-		'xkey_ext' => json_encode( [ 'low' => $pLow, 'high' => $pHigh ] ),
-		'edit'     => json_encode( $pBins ),
-	] );
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pSlotStart );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'PULSE'",
+		[ $pContentId ]
+	);
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'PULSE',
+		'xorder'     => $nextXorder,
+		'xkey'       => (string)round( $pAverage, 1 ),
+		'xkey_ext'   => json_encode( [ 'low' => $pLow, 'high' => $pHigh ] ),
+		'edit'       => json_encode( $pBins ),
+		'start_date' => $pSlotStart,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**

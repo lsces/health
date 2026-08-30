@@ -19,7 +19,7 @@
 require_once __DIR__.'/ImportWT.php'; // healthParseHealthForYouCsv(), healthParseHealthForYouTimestamp()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a TEMP xref row for one reading, unless a row already exists for
@@ -34,10 +34,33 @@ use Bitweaver\Liberty\LibertyContent;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreTemp( int $pContentId, int $pTimestamp, float $pTemp, string $pMode ): bool {
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'TEMP', $pTimestamp, [
-		'xkey'     => (string)$pTemp,
-		'xkey_ext' => $pMode,
-	] );
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'TEMP' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'TEMP'",
+		[ $pContentId ]
+	);
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'TEMP',
+		'xorder'     => $nextXorder,
+		'xkey'       => (string)$pTemp,
+		'xkey_ext'   => $pMode,
+		'start_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**

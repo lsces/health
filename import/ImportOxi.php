@@ -20,7 +20,7 @@
 require_once __DIR__.'/ImportWT.php'; // healthParseHealthForYouCsv(), healthParseHealthForYouTimestamp()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert an OXI xref row for one reading, unless a row already exists for
@@ -37,11 +37,34 @@ use Bitweaver\Liberty\LibertyContent;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreOxi( int $pContentId, int $pTimestamp, float $pSpo2Avg, int $pPulse, array $pDetail ): bool {
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'OXI', $pTimestamp, [
-		'xkey'     => (string)$pSpo2Avg,
-		'xkey_ext' => (string)$pPulse,
-		'edit'     => json_encode( $pDetail ),
-	] );
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'OXI' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'OXI'",
+		[ $pContentId ]
+	);
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'OXI',
+		'xorder'     => $nextXorder,
+		'xkey'       => (string)$pSpo2Avg,
+		'xkey_ext'   => (string)$pPulse,
+		'edit'       => json_encode( $pDetail ),
+		'start_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**

@@ -33,7 +33,7 @@
 require_once __DIR__.'/ImportWT.php'; // healthParseHealthForYouCsv(), healthParseHealthForYouTimestamp()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a BP xref row for one reading, unless a row already exists for this
@@ -51,11 +51,34 @@ use Bitweaver\Liberty\LibertyContent;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreBP( int $pContentId, int $pTimestamp, float $pSystolic, float $pDiastolic, array $pDetail ): bool {
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'BP', $pTimestamp, [
-		'xkey'     => (string)$pSystolic,
-		'xkey_ext' => (string)$pDiastolic,
-		'edit'     => json_encode( $pDetail ),
-	] );
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'BP'",
+		[ $pContentId ]
+	);
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'BP',
+		'xorder'     => $nextXorder,
+		'xkey'       => (string)$pSystolic,
+		'xkey_ext'   => (string)$pDiastolic,
+		'edit'       => json_encode( $pDetail ),
+		'start_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**

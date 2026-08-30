@@ -48,7 +48,7 @@
 require_once __DIR__.'/ImportPulse.php'; // healthParseSamsungCsv(), healthFindLatestSamsungCsv()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Text label for an EXERCISE type code — written into xkey at import time
@@ -88,12 +88,36 @@ function healthExerciseTypeLabel( string $pType ): string {
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreExercise( int $pContentId, int $pTimestamp, string $pType, float $pClockSpanMinutes, array $pDetail ): bool {
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'EXERCISE' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$nextXorder = (int)$gBitDb->getOne(
+		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'EXERCISE'",
+		[ $pContentId ]
+	);
+
 	$pDetail = [ 'type_code' => $pType ] + $pDetail;
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'EXERCISE', $pTimestamp, [
-		'xkey'     => healthExerciseTypeLabel( $pType ),
-		'xkey_ext' => (string)round( $pClockSpanMinutes, 2 ),
-		'edit'     => json_encode( $pDetail ),
-	] );
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'EXERCISE',
+		'xorder'     => $nextXorder,
+		'xkey'       => healthExerciseTypeLabel( $pType ),
+		'xkey_ext'   => (string)round( $pClockSpanMinutes, 2 ),
+		'edit'       => json_encode( $pDetail ),
+		'start_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**

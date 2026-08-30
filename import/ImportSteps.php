@@ -29,7 +29,7 @@
 require_once __DIR__.'/ImportPulse.php'; // healthParseSamsungCsv(), healthFindLatestSamsungCsv()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXref;
 
 /**
  * Insert a STEPS xref row for one day, unless one already exists for this
@@ -46,11 +46,29 @@ use Bitweaver\Liberty\LibertyContent;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreSteps( int $pContentId, int $pTimestamp, int $pSteps, float $pActiveMins, float $pActiveKcal ): bool {
-	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'STEPS', $pTimestamp, [
-		'xkey'     => (string)$pSteps,
-		'xkey_ext' => (string)round( $pActiveMins, 1 ),
-		'edit'     => json_encode( [ 'active_kcal' => round( $pActiveKcal, 1 ) ] ),
-	] );
+	global $gBitDb;
+
+	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
+	$existing = $gBitDb->getOne(
+		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'STEPS' AND `start_date` = ?",
+		[ $pContentId, $startDate ]
+	);
+	if( $existing ) {
+		return false;
+	}
+
+	$pHash = [
+		'content_id' => $pContentId,
+		'item'       => 'STEPS',
+		'xorder'     => 0,
+		'xkey'       => (string)$pSteps,
+		'xkey_ext'   => (string)round( $pActiveMins, 1 ),
+		'edit'       => json_encode( [ 'active_kcal' => round( $pActiveKcal, 1 ) ] ),
+		'start_date' => $pTimestamp,
+	];
+	$xref = new LibertyXref();
+	$xref->store( $pHash );
+	return true;
 }
 
 /**
