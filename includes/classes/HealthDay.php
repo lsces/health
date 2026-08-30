@@ -234,15 +234,11 @@ class HealthDay extends LibertyContent {
 	 * @return string
 	 */
 	public static function getDayCellHtml( array $pHash ): string {
-		global $gBitDb;
 		$contentId = (int)$pHash['content_id'];
 
 		require_once __DIR__.'/../HealthDaySummary.php';
 
-		$raisedHrData = $gBitDb->getOne(
-			"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
-			[ $contentId ]
-		);
+		$raisedHrData = LibertyContent::lookupXrefByItem( $contentId, 'RAISEDHR', HEALTHDAY_CONTENT_TYPE_GUID )['data'] ?? null;
 
 		$wt       = healthDaySummaryWT( $contentId );
 		$bp       = healthDaySummaryBP( $contentId );

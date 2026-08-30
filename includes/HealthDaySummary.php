@@ -13,6 +13,15 @@
 
 namespace Bitweaver\Health;
 
+use Bitweaver\Liberty\LibertyContent;
+
+// Same guard as HealthDay.php's own - this file is require_once'd directly by
+// report_bp_detail.php/report_range.php without HealthDay.php ever loading
+// first (neither references the class), so the constant can't be relied on
+// to already exist. Confirmed live 2026-08-30: a fresh CLI call hit "Undefined
+// constant" here before this guard was added.
+defined( 'HEALTHDAY_CONTENT_TYPE_GUID' ) || define( 'HEALTHDAY_CONTENT_TYPE_GUID', 'healthday' );
+
 
 /**
  * WT day-summary: the lowest AM (before noon, Europe/London local) weight
@@ -272,10 +281,7 @@ function healthFormatBPLine( float $pSysMin, float $pSysMax, float $pDiaMin, flo
 function healthDaySummaryPulse( int $pContentId ): ?array {
 	global $gBitDb;
 
-	$raisedHrData = $gBitDb->getOne(
-		"SELECT `data` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'RAISEDHR'",
-		[ $pContentId ]
-	);
+	$raisedHrData = LibertyContent::lookupXrefByItem( $pContentId, 'RAISEDHR', HEALTHDAY_CONTENT_TYPE_GUID )['data'] ?? null;
 	$raisedHr = $raisedHrData ? json_decode( (string)$raisedHrData, true ) : null;
 	$min = isset( $raisedHr['hr_min'] ) ? (float)$raisedHr['hr_min'] : null;
 	$max = isset( $raisedHr['hr_max'] ) ? (float)$raisedHr['hr_max'] : null;
@@ -391,12 +397,7 @@ function healthDaySummarySleep( int $pContentId ): array {
  * @return array{total_score:float,shrv_value:float,detail:array}|null
  */
 function healthDaySummaryEnergy( int $pContentId ): ?array {
-	global $gBitDb;
-	$row = $gBitDb->getRow(
-		"SELECT `xkey`, `xkey_ext`, `data` FROM `".BIT_DB_PREFIX."liberty_xref`
-			WHERE `content_id` = ? AND `item` = 'ENERGY'",
-		[ $pContentId ]
-	);
+	$row = LibertyContent::lookupXrefByItem( $pContentId, 'ENERGY', HEALTHDAY_CONTENT_TYPE_GUID );
 	if( !$row ) {
 		return null;
 	}
@@ -415,12 +416,7 @@ function healthDaySummaryEnergy( int $pContentId ): ?array {
  * @return array{count:int,active_mins:float,active_kcal:float}|null
  */
 function healthDaySummarySteps( int $pContentId ): ?array {
-	global $gBitDb;
-	$row = $gBitDb->getRow(
-		"SELECT `xkey`, `xkey_ext`, `data` FROM `".BIT_DB_PREFIX."liberty_xref`
-			WHERE `content_id` = ? AND `item` = 'STEPS'",
-		[ $pContentId ]
-	);
+	$row = LibertyContent::lookupXrefByItem( $pContentId, 'STEPS', HEALTHDAY_CONTENT_TYPE_GUID );
 	if( !$row ) {
 		return null;
 	}
