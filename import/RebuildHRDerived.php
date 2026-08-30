@@ -28,6 +28,8 @@
 require_once __DIR__.'/ImportPulse.php';     // healthStorePulseSlot()
 require_once __DIR__.'/ImportRaisedHR.php';  // healthStoreRaisedHR()/healthRaisedHRMinutes()/thresholds/gap caps
 
+use Bitweaver\Liberty\LibertyContent;
+
 use Bitweaver\Health\HealthDay;
 
 /**
@@ -75,11 +77,7 @@ function healthRebuildFetchDayRows( string $pDate ): array {
  * genuinely replaces rather than accumulates alongside the old result.
  */
 function healthRebuildDeleteDayItem( int $pContentId, string $pItem ): void {
-	global $gBitDb;
-	$gBitDb->query(
-		"DELETE FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = ?",
-		[ $pContentId, $pItem ]
-	);
+	LibertyContent::deleteXrefByItem( $pContentId, $pItem );
 }
 
 /**
