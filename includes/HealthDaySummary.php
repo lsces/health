@@ -18,8 +18,7 @@ use Bitweaver\Liberty\LibertyContent;
 // Same guard as HealthDay.php's own - this file is require_once'd directly by
 // report_bp_detail.php/report_range.php without HealthDay.php ever loading
 // first (neither references the class), so the constant can't be relied on
-// to already exist. Confirmed live 2026-08-30: a fresh CLI call hit "Undefined
-// constant" here before this guard was added.
+// to already exist.
 defined( 'HEALTHDAY_CONTENT_TYPE_GUID' ) || define( 'HEALTHDAY_CONTENT_TYPE_GUID', 'healthday' );
 
 
