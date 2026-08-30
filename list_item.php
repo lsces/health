@@ -13,6 +13,7 @@ namespace Bitweaver\Health;
 
 use Bitweaver\BitBase;
 use Bitweaver\Liberty\LibertyContent;
+use Bitweaver\Liberty\LibertyXrefType;
 
 require_once '../kernel/includes/setup_inc.php';
 
@@ -61,10 +62,7 @@ $X = BIT_DB_PREFIX;
 // see HealthDay::getItemColumnTitles()'s own docblock.
 $columnTitles = HealthDay::getItemColumnTitles();
 
-$items = $gBitDb->getAll(
-	"SELECT `item`, `cross_ref_title` FROM `{$X}liberty_xref_item`
-		WHERE `content_type_guid` = 'healthday' ORDER BY `sort_order`, `item`"
-);
+$items = LibertyXrefType::getItemList( 'healthday' );
 
 $selectedItem = $_REQUEST['item'] ?? '';
 $validItems   = array_column( $items, 'item' );

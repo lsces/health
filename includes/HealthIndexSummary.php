@@ -10,6 +10,8 @@
 
 namespace Bitweaver\Health;
 
+use Bitweaver\Liberty\LibertyXrefType;
+
 /**
  * @return array<string, array{title:string, count:int, min_date:?string, max_date:?string}>
  *         Keyed by item code, in liberty_xref_item's own sort_order.
@@ -18,10 +20,7 @@ function healthIndexItemSummary(): array {
 	global $gBitDb;
 	$X = BIT_DB_PREFIX;
 
-	$items = $gBitDb->getAll(
-		"SELECT `item`, `cross_ref_title` FROM `{$X}liberty_xref_item`
-			WHERE `content_type_guid` = 'healthday' ORDER BY `sort_order`"
-	);
+	$items = LibertyXrefType::getItemList( 'healthday' );
 
 	$counts = $gBitDb->getAll(
 		"SELECT x.`item`, COUNT(*) AS `cnt`, MIN(x.`start_date`) AS `min_date`, MAX(x.`start_date`) AS `max_date`
