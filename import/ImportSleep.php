@@ -41,7 +41,7 @@
 require_once __DIR__.'/ImportPulse.php'; // healthParseSamsungCsv(), healthFindLatestSamsungCsv()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Insert a SLEEP xref row for one session, unless one already exists for
@@ -57,34 +57,11 @@ use Bitweaver\Liberty\LibertyXref;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreSleep( int $pContentId, int $pTimestamp, float $pScore, float $pDurationMinutes, array $pDetail ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$nextXorder = (int)$gBitDb->getOne(
-		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'SLEEP'",
-		[ $pContentId ]
-	);
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'SLEEP',
-		'xorder'     => $nextXorder,
-		'xkey'       => (string)$pScore,
-		'xkey_ext'   => (string)$pDurationMinutes,
-		'edit'       => json_encode( $pDetail ),
-		'start_date' => $pTimestamp,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'SLEEP', $pTimestamp, [
+		'xkey'     => (string)$pScore,
+		'xkey_ext' => (string)$pDurationMinutes,
+		'edit'     => json_encode( $pDetail ),
+	] );
 }
 
 /**

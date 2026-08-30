@@ -22,7 +22,7 @@
  */
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Parse a HealthForYou-format CSV (semicolon-delimited, 1 header row) into an
@@ -69,9 +69,10 @@ function healthParseHealthForYouTimestamp( string $pDate, string $pTime ): ?arra
 /**
  * Insert a WT xref row for one weight reading, unless a row already exists for
  * this exact content_id + start_date (reimport safety — see this file's own
- * docblock). Computes its own xorder rather than using LibertyXref's fAddXref
- * path, since WT is flagged multiple=-1 (read-only) and fAddXref would be
- * rejected outright — see health/admin/schema_inc.php's WT comment.
+ * docblock). LibertyContent::insertXrefReadingIfNew() computes its own xorder
+ * rather than using LibertyXref's fAddXref path, since WT is flagged
+ * multiple=-1 (read-only) and fAddXref would be rejected outright — see
+ * health/admin/schema_inc.php's WT comment.
  *
  * @param  int    $pContentId  The day's HealthDay content_id.
  * @param  int    $pTimestamp  Unix timestamp of the reading (UTC).
@@ -81,34 +82,11 @@ function healthParseHealthForYouTimestamp( string $pDate, string $pTime ): ?arra
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreWT( int $pContentId, int $pTimestamp, float $pWeight, float $pBmi, array $pBodyComp ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'WT' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$nextXorder = (int)$gBitDb->getOne(
-		"SELECT COALESCE( MAX(`xorder`) + 1, 0 ) FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'WT'",
-		[ $pContentId ]
-	);
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'WT',
-		'xorder'     => $nextXorder,
-		'xkey'       => (string)$pWeight,
-		'xkey_ext'   => (string)$pBmi,
-		'edit'       => json_encode( $pBodyComp ),
-		'start_date' => $pTimestamp,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'WT', $pTimestamp, [
+		'xkey'     => (string)$pWeight,
+		'xkey_ext' => (string)$pBmi,
+		'edit'     => json_encode( $pBodyComp ),
+	] );
 }
 
 /**

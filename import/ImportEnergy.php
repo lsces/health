@@ -31,7 +31,7 @@
 require_once __DIR__.'/ImportPulse.php'; // healthParseSamsungCsv(), healthFindLatestSamsungCsv()
 
 use Bitweaver\Health\HealthDay;
-use Bitweaver\Liberty\LibertyXref;
+use Bitweaver\Liberty\LibertyContent;
 
 /**
  * Insert an ENERGY xref row for one day, unless one already exists for this
@@ -47,29 +47,11 @@ use Bitweaver\Liberty\LibertyXref;
  * @return bool  TRUE if a new row was inserted, FALSE if one already existed (skipped).
  */
 function healthStoreEnergy( int $pContentId, int $pTimestamp, float $pTotalScore, float $pShrvValue, array $pDetail ): bool {
-	global $gBitDb;
-
-	$startDate = gmdate( 'Y-m-d H:i:s', $pTimestamp );
-	$existing = $gBitDb->getOne(
-		"SELECT `xref_id` FROM `".BIT_DB_PREFIX."liberty_xref` WHERE `content_id` = ? AND `item` = 'ENERGY' AND `start_date` = ?",
-		[ $pContentId, $startDate ]
-	);
-	if( $existing ) {
-		return false;
-	}
-
-	$pHash = [
-		'content_id' => $pContentId,
-		'item'       => 'ENERGY',
-		'xorder'     => 0,
-		'xkey'       => (string)round( $pTotalScore, 1 ),
-		'xkey_ext'   => (string)round( $pShrvValue, 1 ),
-		'edit'       => json_encode( $pDetail ),
-		'start_date' => $pTimestamp,
-	];
-	$xref = new LibertyXref();
-	$xref->store( $pHash );
-	return true;
+	return LibertyContent::insertXrefReadingIfNew( $pContentId, 'ENERGY', $pTimestamp, [
+		'xkey'     => (string)round( $pTotalScore, 1 ),
+		'xkey_ext' => (string)round( $pShrvValue, 1 ),
+		'edit'     => json_encode( $pDetail ),
+	] );
 }
 
 /**
