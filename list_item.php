@@ -107,9 +107,11 @@ if( $to !== '' ) {
 	$dateParams[] = $to;
 }
 
-// 20 per page here rather than the site's own max_records default (10) —
-// still overridable via ?max_records= same as any other paginated list.
-$_REQUEST['max_records'] = $_REQUEST['max_records'] ?? 20;
+// 31 per page here rather than the site's own max_records default (10) —
+// a full month's worth of daily rows fits on one page without paging, most
+// items are one row/day. Still overridable via ?max_records= same as any
+// other paginated list.
+$_REQUEST['max_records'] = $_REQUEST['max_records'] ?? 31;
 BitBase::prepGetList( $_REQUEST );
 
 // history=y shows archived rows too; default view hides anything with end_date set.
