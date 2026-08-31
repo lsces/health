@@ -47,7 +47,7 @@ function healthDaySummaryWT( int $pContentId ): ?array {
 	$tz = $gBitUser->getUserTimezone();
 	$amRows = [];
 	foreach( $rows as $row ) {
-		$local = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+		$local = ( new \DateTime( '@'.$row['start_date'] ) )->setTimezone( $tz );
 		if( (int)$local->format( 'H' ) < 12 ) {
 			$amRows[] = $row;
 		}
@@ -131,7 +131,7 @@ function healthDaySummaryBP( int $pContentId ): ?array {
 			$pulse[] = $p;
 		}
 
-		$local = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+		$local = ( new \DateTime( '@'.$row['start_date'] ) )->setTimezone( $tz );
 		$hour  = (int)$local->format( 'H' );
 		$slot  = $hour < 9 ? 'morning' : ( $hour < 16 ? 'midday' : 'evening' );
 		$slotRows[$slot][] = [ 'sys' => $s, 'dia' => $d, 'pulse' => $p, 'time' => $local->format( 'H:i' ) ];
