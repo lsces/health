@@ -149,10 +149,12 @@ if( $selectedItem !== '' ) {
 				? count( $decoded ).' items' : null;
 			$row['extra'] = ( $extraDataKey !== null && is_array( $decoded ) )
 				? ( $decoded[$extraDataKey] ?? null ) : null;
-			// start_date is stored UTC (see ImportWT.php/ImportBP.php's own docblocks) -
-			// converted to local time here so morning/evening readings are distinguishable
-			// at a glance, same as the day-summary reports already do.
-			$row['time'] = ( new \DateTime( $row['start_date'], new \DateTimeZone( 'UTC' ) ) )
+			// start_date is stored as a UTC epoch int (liberty_xref's 2026-08-31 TIMESTAMP->I8
+			// conversion, see kernel/DATETIME.md) - '@'-prefixed DateTime input is always
+			// treated as UTC regardless of any DateTimeZone passed alongside it, matching what
+			// this needs; converted to local time here so morning/evening readings are
+			// distinguishable at a glance, same as the day-summary reports already do.
+			$row['time'] = ( new \DateTime( '@'.$row['start_date'] ) )
 				->setTimezone( $tz )->format( 'H:i' );
 			$row['is_history'] = !empty( $row['end_date'] );
 		}
