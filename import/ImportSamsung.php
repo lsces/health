@@ -307,7 +307,8 @@ function healthImportSamsung( array $pFileHash ): array {
 		$fieldIdx = null;
 		$startIdx = null;
 		foreach( $header as $i => $col ) {
-			if( str_ends_with( $col, '.binning_data' ) || str_ends_with( $col, '.live_data' ) ) {
+			if( $col === 'binning_data' || str_ends_with( $col, '.binning_data' )
+				|| $col === 'live_data' || str_ends_with( $col, '.live_data' ) ) {
 				$fieldIdx = $i;
 			}
 			if( str_ends_with( $col, '.start_time' ) || $col === 'start_time' ) {
