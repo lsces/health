@@ -4,7 +4,7 @@
 		<h1>{$page_title|default:"Health Raw Data"|escape}</h1>
 	</div>
 	<div class="body">
-		<form method="get" action="list_item.php">
+		<form method="get" action="list_item.php" class="hidden-print">
 			<p>
 				{foreach $items as $i}
 					<label style="margin-right:1em;">
@@ -31,8 +31,8 @@
 
 				{include file="bitpackage:kernel/bitnav_range_inc.tpl" buttonLabel="Update" bumpDays=31 ownForm=false}
 
-				{if $canEditMode}
-					<ul class="pagination">
+				<ul class="pagination">
+					{if $canEditMode}
 						{* No nested <form> - this button submits the page's one enclosing form
 						   (line 7 above), same "ownForm=false" convention bitnav_range_inc.tpl's
 						   own Update button already uses. A <button name=value> only sends that
@@ -41,8 +41,9 @@
 						<li class="bitnav-gap">
 							<button type="submit" name="edit" value="{if $editRequested}{else}y{/if}">{if $editRequested}{tr}Exit Edit{/tr}{else}{tr}Edit{/tr}{/if}</button>
 						</li>
-					</ul>
-				{/if}
+					{/if}
+					<li class="bitnav-gap"><a href="#" onclick="window.print();return false;">{tr}Print{/tr}</a></li>
+				</ul>
 			</div>
 		</form>
 
@@ -90,7 +91,7 @@
 						{/foreach}
 					</tbody>
 				</table>
-				{pagination}
+				<div class="hidden-print">{pagination}</div>
 			{else}
 				<p>{tr}No rows for this item.{/tr}</p>
 			{/if}
