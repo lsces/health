@@ -64,6 +64,24 @@ use Bitweaver\KernelTools;
 
 const HEALTH_SAMSUNG_EARLIEST = '2024-06-29'; // confirmed phone-acquisition date - see split_by_year.py's own PHONE_ACQUIRED
 
+/**
+ * Fast-bypass buffer (days) behind the last import's newest row-date. A row older than that
+ * cutoff is treated as already-imported and skipped before the expensive per-year exact-line
+ * dedup even runs - see samsungLastImportDateFile()'s docblock for the full rationale. Samsung's
+ * export is never backfilled/edited once a row's date is this far in the past, confirmed with
+ * Lester 2026-08-31 - the buffer exists purely for day-boundary/timezone slack, not real risk of
+ * a genuinely-new old row being missed.
+ */
+const HEALTH_SAMSUNG_BYPASS_BUFFER_DAYS = 2;
+
+/**
+ * Path to the single global marker file holding the newest row-date seen across every Samsung
+ * type in the last successful import - see healthImportSamsung()'s fast-bypass use of it.
+ */
+function samsungLastImportDateFile(): string {
+	return HEALTH_IMPORT_PATH.'samsung_last_import_date.txt';
+}
+
 /** type name (date-suffix stripped) => [importer function, needs a jsons dir]. Only CSV-plus-optional-jsons single-file importers go here - tracker.heart_rate/exercise (HR_RAW + RAISEDHR + healthImportExercise's own EXERCISE session rows) are handled separately, below, sharing one delta CSV per source rather than three independent ones. */
 const HEALTH_SAMSUNG_TYPE_IMPORTERS = [
 	'com.samsung.shealth.blood_pressure'          => [ 'healthImportBPSamsung', false ],
@@ -268,6 +286,14 @@ function healthImportSamsung( array $pFileHash ): array {
 	$yearsTouched = [];
 	$hrDateMin = null;
 	$hrDateMax = null; // tracks tracker.heart_rate/exercise new-row dates only - the actual rebuild scope
+	$maxDateSeen = null; // newest row-date across every type this run - becomes next run's cutoff basis
+
+	$lastImportDateFile = samsungLastImportDateFile();
+	$lastImportDate = file_exists( $lastImportDateFile ) ? trim( file_get_contents( $lastImportDateFile ) ) : null;
+	// No marker yet (first-ever run) - process everything, same as before the bypass existed.
+	$bypassCutoff = $lastImportDate
+		? date( 'Y-m-d', strtotime( $lastImportDate ) - HEALTH_SAMSUNG_BYPASS_BUFFER_DAYS * 86400 )
+		: null;
 
 	// Pass 1: archive every type's CSV rows + referenced blobs, per year.
 	// Collect each type's new rows per year for the dispatch pass below.
@@ -296,6 +322,15 @@ function healthImportSamsung( array $pFileHash ): array {
 			$date = $dateStr ? substr( $dateStr, 0, 10 ) : null;
 			if( $date !== null && $date < HEALTH_SAMSUNG_EARLIEST ) {
 				continue; // device-setup placeholder noise, same drop as split_by_year.py
+			}
+			if( $date !== null && ( $maxDateSeen === null || $date > $maxDateSeen ) ) {
+				$maxDateSeen = $date;
+			}
+			// Fast bypass: a row this far behind the last import's newest date was certainly
+			// already archived/imported in a previous run - skip it before the expensive
+			// per-year exact-line dedup in samsungArchiveCsvRows() even sees it.
+			if( $bypassCutoff !== null && $date !== null && $date < $bypassCutoff ) {
+				continue;
 			}
 			$year = $date ? substr( $date, 0, 4 ) : 'unknown';
 			$rowsByYear[$year][] = $row;
@@ -395,6 +430,12 @@ function healthImportSamsung( array $pFileHash ): array {
 	}
 
 	$result['years'] = array_keys( $yearsTouched );
+
+	// Advance the fast-bypass marker to this run's newest row-date, for next time. Only ever
+	// moves forward - an empty/older-only upload leaves the previous marker untouched.
+	if( $maxDateSeen !== null && ( $lastImportDate === null || $maxDateSeen > $lastImportDate ) ) {
+		file_put_contents( $lastImportDateFile, $maxDateSeen );
+	}
 
 	KernelTools::unlink_r( $destDir );
 

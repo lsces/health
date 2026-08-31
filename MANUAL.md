@@ -134,6 +134,16 @@ per type:
    part of this same pass, for `mapper`'s own future use (see `mapper.md`) — health's side of that
    is complete, display is mapper's job.
 
+   **Fast bypass**: since Samsung's export is a full history dump every time, the per-year
+   exact-line dedup (`samsungArchiveCsvRows()`, reads the whole existing `history/<year>/<type>.csv`
+   into memory) gets more expensive every year that accumulates. `storage/health/
+   samsung_last_import_date.txt` holds the newest row-date seen across every type in the last
+   successful run; any row more than `HEALTH_SAMSUNG_BYPASS_BUFFER_DAYS` (2) days behind that date
+   is treated as already-imported and dropped before the dedup even runs for that year — a whole
+   year is skipped entirely once nothing in it survives the cutoff. No marker yet (first-ever run)
+   means nothing is bypassed. Relies on Samsung data never being backfilled/edited once old enough
+   to clear the buffer.
+
 **Dedup**: session-shaped items (`SLEEP`/`EXERCISE`) key on exact `content_id`+`start_date`;
 reading-shaped items key on `entry_date` (to-the-minute, since HealthForYou's own timestamps carry
 no seconds); `HEALTH_HR_RAW` keys on its own `START_TIME` primary key (checked via a plain
