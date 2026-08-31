@@ -13,7 +13,7 @@
 				<ul class="pagination">
 					<li class="bitnav-picker">
 						<form method="post" enctype="multipart/form-data" id="samsungUploadForm">
-							<input type="file" name="export_file" accept=".tar.gz,.tgz,application/gzip" />
+							<input type="file" name="export_file" accept=".tar.gz,.tgz,.zip,application/gzip,application/zip" />
 						</form>
 					</li>
 					<li class="bitnav-gap"><button type="submit" form="samsungUploadForm">{tr}Upload &amp; Run{/tr}</button></li>

@@ -70,7 +70,18 @@ if( !in_array( $selectedItem, $validItems, true ) ) {
 	$selectedItem = $validItems[0] ?? '';
 }
 
-[ $xkeyTitle, $xkeyExtTitle, $dataTitle ] = $columnTitles[$selectedItem] ?? [ 'xkey', 'xkey_ext', 'data' ];
+// An item can carry a 4th title to promote one specific `data` JSON key into
+// its own column (currently just RAISEDHR's `mins_130`, alongside its
+// existing xkey/xkey_ext columns for the 90/100bpm tiers) - see
+// HealthDay::getItemColumnTitles()'s own docblock.
+$titles = $columnTitles[$selectedItem] ?? [ 'xkey', 'xkey_ext', 'data' ];
+if( count( $titles ) === 4 ) {
+	[ $xkeyTitle, $xkeyExtTitle, $extraTitle, $dataTitle ] = $titles;
+} else {
+	[ $xkeyTitle, $xkeyExtTitle, $dataTitle ] = $titles;
+	$extraTitle = null;
+}
+$extraDataKey = $selectedItem === 'RAISEDHR' ? 'mins_130' : null;
 
 // Optional date-range narrowing (the same From/To bar every other Health page now uses) -
 // blank by default, so this still browses everything unless a range is actually picked.
@@ -134,6 +145,8 @@ if( $selectedItem !== '' ) {
 			$decoded = json_decode( (string)$row['data'], true );
 			$row['data_summary'] = ( is_array( $decoded ) && count( $decoded ) > 3 )
 				? count( $decoded ).' items' : null;
+			$row['extra'] = ( $extraDataKey !== null && is_array( $decoded ) )
+				? ( $decoded[$extraDataKey] ?? null ) : null;
 			// start_date is stored UTC (see ImportWT.php/ImportBP.php's own docblocks) -
 			// converted to local time here so morning/evening readings are distinguishable
 			// at a glance, same as the day-summary reports already do.
@@ -159,6 +172,7 @@ $gBitSmarty->assign( 'rows',             $rows );
 $gBitSmarty->assign( 'total',            $_REQUEST['cant'] ?? 0 );
 $gBitSmarty->assign( 'xkeyTitle',        $xkeyTitle );
 $gBitSmarty->assign( 'xkeyExtTitle',     $xkeyExtTitle );
+$gBitSmarty->assign( 'extraTitle',       $extraTitle );
 $gBitSmarty->assign( 'dataTitle',        $dataTitle );
 $gBitSmarty->assign( 'listInfo',         $_REQUEST['listInfo'] );
 $gBitSmarty->assign( 'editMode',         $editMode );

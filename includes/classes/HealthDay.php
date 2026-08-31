@@ -314,13 +314,14 @@ class HealthDay extends LibertyContent {
 
 	/**
 	 * Per-item column titles for xkey/xkey_ext/data — these are raw storage
-	 * columns with generic names, not self-describing on their own. Shared by
-	 * list_item.php (one item across every day) and view_day.php (every item
-	 * for one day) so the two displays can't drift apart. Falls back to the
-	 * raw column name for any item not listed here (e.g. a newly added one
-	 * not yet given real labels).
+	 * columns with generic names, not self-describing on their own. Used by
+	 * list_item.php's raw data browser. Falls back to the raw column name for
+	 * any item not listed here (e.g. a newly added one not yet given real
+	 * labels). Normally 3 elements (xkey/xkey_ext/data); an item that also
+	 * wants one specific `data` JSON key promoted to its own column (e.g.
+	 * RAISEDHR's `mins_130`) has 4 - see list_item.php's own handling.
 	 *
-	 * @return array<string, array{0:string,1:string,2:string}>
+	 * @return array<string, array{0:string,1:string,2:string}|array{0:string,1:string,2:string,3:string}>
 	 */
 	public static function getItemColumnTitles(): array {
 		return [
@@ -336,7 +337,7 @@ class HealthDay extends LibertyContent {
 			'STEMP'     => [ 'Average (°C)',      'Low/High',        'Minute Detail' ],
 			'HRV'       => [ 'SDNN',              'RMSSD',           'Slot Detail' ],
 			'STEPTRACK' => [ 'Total Steps',       'Peak (10 min)',   'Day Track' ],
-			'RAISEDHR'  => [ 'Mins >=90bpm',      'Mins >=100bpm',   'Day Detail' ],
+			'RAISEDHR'  => [ 'Mins >=90bpm',      'Mins >=100bpm',   'Mins >=130bpm', 'Day Detail' ],
 			'EXERCISE'  => [ 'Type',              'Duration (mins)', 'Detail' ],
 		];
 	}

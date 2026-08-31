@@ -55,6 +55,7 @@
 							<th>{tr}Time{/tr}</th>
 							<th>{$xkeyTitle|escape}</th>
 							<th>{$xkeyExtTitle|escape}</th>
+							{if $extraTitle}<th>{$extraTitle|escape}</th>{/if}
 							<th>{$dataTitle|escape}</th>
 							{if $editMode}<th>{tr}Action{/tr}</th>{/if}
 						</tr>
@@ -66,6 +67,7 @@
 							<td>{$r.time|escape}</td>
 							<td>{$r.xkey|escape}</td>
 							<td>{$r.xkey_ext|escape}</td>
+							{if $extraTitle}<td>{$r.extra|escape}</td>{/if}
 							<td>
 								{if $r.data_summary}
 									<details><summary>{$r.data_summary|escape}</summary><pre>{$r.data|escape}</pre></details>
