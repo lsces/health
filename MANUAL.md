@@ -15,16 +15,14 @@ Two independent import pipelines, covering overlapping but not identical data:
 - **Samsung Health** — the phone/watch app's own export (`samsunghealth_name_<date>/`, one CSV
   per data type + a `jsons/` tier of per-record detail blobs + a `files/` tier of file
   attachments). Far broader: activity, sleep, HRV, raw heart-rate traces, exercise sessions, ECG
-  PDFs. `start_time`/`create_time` columns are already UTC-equivalent — parsing them against
-  `Europe/London` double-subtracts the BST hour, a bug found and fixed in four separate importers
-  2026-08-27 (`ImportBPSamsung.php`/`ImportSleep.php`/`ImportOxiSamsung.php`/`ImportRaisedHR.php`).
-  Session-shaped data (sleep, exercise) has to resolve *both* start and end against the
-  `Europe/London` IANA zone directly instead — the CSV's own single `time_offset` column can't
-  correctly cover a session spanning a BST↔GMT transition.
+  PDFs. `start_time`/`create_time` columns are already UTC-equivalent — every importer parses
+  them directly as UTC rather than against a named zone, to avoid double-subtracting the BST hour.
+  Session-shaped data (sleep, exercise) resolves *both* start and end against the user's own IANA
+  timezone directly — a session's own single `time_offset` column can't correctly cover a session
+  spanning a summer/winter time transition.
 
 Split into per-package copies (`~/Personal/Health/Samsung Health/health_name_<date>/`) via
-`split_health.sh` before use — see `reference_samsung_health_export` memory for the drop list
-(pure device/app config, not real data) and the split's own file layout.
+`split_health.sh` before use — pure device/app config gets dropped at this step, not real data.
 
 `storage/health/` (the package's own import staging area) has two roles: the flat top level holds
 whatever's the newest manually-staged export for the standalone `load_*.php` importers; `history/
@@ -170,9 +168,9 @@ nav bar; `history=y` shows already-archived rows too (light-red background), rat
 them by default. Archive calls `LibertyContent::stepXref(['xref_id'=>...,'expunge'=>1])` directly
 — not routed through `liberty/edit_xref.php`, since that controller redirects to the content
 item's own edit page on success, which would bounce the user off this cross-day browser. See
-`liberty/MANUAL.md`'s "Expunge and history" section for the underlying mechanism, and its
-`multiple=-1` note for a real bug this surfaced (every health item is `-1`; archiving one was
-silently broken until fixed 2026-08-28).
+`liberty/MANUAL.md`'s "Expunge and history" section for the underlying mechanism — every health
+item is `multiple=-1`, so this page relies on liberty's narrow read-only exemption for pure
+archive/restore/step operations.
 
 ## Calendar integration
 
@@ -190,14 +188,11 @@ considered "pick the real headline reading" logic — see Known gaps.
   xref item, no importer. Direction settled: a `health` gallery in `fisheye`, reusing its existing
   gallery tooling rather than bespoke file-handling here — not scoped, no validated real ECG
   reading yet to build/test against.
-- **Timezone is hardcoded `Europe/London`** throughout (import parsing, `list_item.php`'s display
-  conversion) rather than reading a real per-user preference — fine for a single-user UK site, not
-  a general solution.
 - **`admin_packages_inc.php`'s installer shortcut mis-handles this package's upgrades** — health
   owns no tables of its own, which trips a kernel-level "quiet auto-upgrade" bug that silently
   bumps the tracked version without actually applying the upgrade's SQL. Not a health bug — see
-  `kernel.md`'s 2026-08-28 entry. Workaround: always run upgrades via `install.php` directly, never
-  rely on the packages admin page alone.
+  `kernel.md`. Workaround: always run upgrades via `install.php` directly, never rely on the
+  packages admin page alone.
 - **`list_item.php` could potentially reuse more of liberty's generic xref plumbing** than it
   currently does (icons only, not the templates themselves) — worth a proper look once
   `liberty/MANUAL.md`'s own reference material is complete enough to design against.

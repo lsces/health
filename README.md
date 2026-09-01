@@ -55,7 +55,6 @@ bespoke handling here, not started).
 - ECG PDF handling via a `fisheye` gallery (not scoped yet — no validated real ECG reading to
   build/test against)
 - The real day-summary rollup logic (currently a simple min/max/average placeholder)
-- Reading a real per-user timezone preference instead of a hardcoded `Europe/London`
 
 See `MANUAL.md` for the full current picture — schema, import architecture, and a more complete
 "known gaps" list than the summary above.
