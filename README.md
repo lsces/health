@@ -31,14 +31,13 @@ the raw per-second heart-rate trace behind all of it. Every raw reading is impor
 row, not reduced to a daily average at import time — a day-summary rollup is a query-time concern,
 not something baked in during import.
 
-**Not imported yet**: ECG report PDFs (Samsung Health exports these as real files, not CSV/JSON —
-planned as a gallery in the [`fisheye`](https://github.com/lsces/fisheye) package instead of
-bespoke handling here, not started).
+Samsung Health's export is much broader than what's listed above — see "What's not imported" below
+for the full picture of what's left out and why.
 
 ## What's built so far
 
 - `HealthDay` content type — the day-based model everything else attaches to
-- Fourteen reading/session item types across vitals, activity, sleep, HRV, and exercise — see
+- Fifteen reading/session item types across vitals, activity, sleep, HRV, and exercise — see
   `MANUAL.md` for the full roster and exactly what each one stores
 - A raw-data browser (per item type, across every day) with an archive/history mechanism — a
   rogue reading can be tagged out of the normal view rather than deleted or silently trusted
@@ -50,14 +49,63 @@ bespoke handling here, not started).
 - Staged import for the raw heart-rate trace (millions of rows across a full history) — one year
   at a time, safe to re-run
 
+## What's not imported
+
+A full Samsung Health export contains far more than the fifteen item types this package builds
+from. Some of what's left out is deliberate (device config, goal-setting, redundant detail); some
+is real data that just hasn't been built yet. If you're relying on this package for a complete
+copy of your own data, this is the honest gap list — not everything the export contains ends up
+queryable yet.
+
+**Real physiological data not captured yet**
+- **ECG report PDFs** (`files/com.samsung.health.ecg/*.data.pdf`) — Samsung exports these as real
+  PDF files, not CSV/JSON. Planned as a gallery in the
+  [`fisheye`](https://github.com/lsces/fisheye) package rather than bespoke handling here — not
+  started.
+- **Sleep stage detail** (`com.samsung.health.sleep_stage` — light/deep/REM/awake breakdown) —
+  only the session-level score, duration, and efficiency are imported, not the stage timeline.
+- **Stress score and its intraday histogram** (`com.samsung.shealth.stress` /
+  `stress.histogram`) — not imported at all currently.
+- **Per-night SpO2 detail beyond the low-point summary** — the oxygen-saturation item stores
+  minutes spent below 90%/85%/80% and the night's low point, but not the full per-minute trace
+  behind it; the plain SpO2 item stores only the session average.
+- **Skin-scan metrics** (`com.samsung.health.advanced_glycation_endproduct`, `.antioxidant`) and
+  **core body temperature** (`com.samsung.health.body_temperature`, a distinct field from the
+  skin-temperature one that is imported) — not imported.
+- **Floors climbed** (`com.samsung.health.floors_climbed` /
+  `com.samsung.shealth.tracker.floors_day_summary`) — not imported.
+- **Exercise sub-detail**: heart-rate zones, recovery heart rate, and per-session max heart rate
+  (`com.samsung.shealth.exercise.hr_zone`, `.recovery_heart_rate`, `.max_heart_rate`) — the
+  session itself is imported with its own average/min/max heart rate, but not this finer detail.
+- **GPS traces from exercise sessions** — copied out to a shared location store for the
+  [`mapper`](https://github.com/lsces/mapper) package rather than imported here, but nothing
+  currently displays them yet.
+
+**Deliberately out of scope**
+- Device/app configuration, notification/insight noise, badges, and goal-setting data (step
+  goals, active-calorie goals, personal-record tracking, activity-level classification, walking
+  recommendations, etc.) — not health readings, no value in importing.
+- High-volume raw sensor dumps too fine-grained to store as individual rows at any reasonable
+  scale (`movement`, `pedometer_step_count`, `sleep_raw_data`) — archived as raw files on import,
+  not decomposed into the database.
+- The raw oxygen-saturation PPG waveform (`com.samsung.health.oxygen_saturation.raw`) — inspected
+  directly and found to be unusable noise at the sample level, not a real signal.
+- Samsung's own phone/watch weight readings (`com.samsung.health.weight`) — weight currently only
+  imports HealthForYou's cuff/scale-sourced readings; a redundant Samsung-side source hasn't been
+  added.
+
+Every raw CSV and JSON file from an uploaded export is archived (`storage/health/history/<year>/`)
+whether or not there's a database importer for it yet — nothing is discarded on upload, so any of
+the above can be added later without needing a fresh export.
+
 ## What's planned
 
 - ECG PDF handling via a `fisheye` gallery (not scoped yet — no validated real ECG reading to
   build/test against)
 - The real day-summary rollup logic (currently a simple min/max/average placeholder)
 
-See `MANUAL.md` for the full current picture — schema, import architecture, and a more complete
-"known gaps" list than the summary above.
+See `MANUAL.md` for the full current picture — schema, import architecture, and the build/process
+gaps (as opposed to data-coverage gaps, covered above).
 
 ## Requirements
 
