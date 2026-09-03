@@ -71,8 +71,8 @@ if( !in_array( $selectedItem, $validItems, true ) ) {
 }
 
 // An item can carry a 4th title to promote one specific `data` JSON key into
-// its own column (currently just RAISEDHR's `mins_130`, alongside its
-// existing xkey/xkey_ext columns for the 90/100bpm tiers) - see
+// its own column (RAISEDHR's `mins_130`/OXIDESAT's `mins_80`, alongside their
+// existing xkey/xkey_ext columns for the other two threshold tiers) - see
 // HealthDay::getItemColumnTitles()'s own docblock.
 $titles = $columnTitles[$selectedItem] ?? [ 'xkey', 'xkey_ext', 'data' ];
 if( count( $titles ) === 4 ) {
@@ -81,7 +81,8 @@ if( count( $titles ) === 4 ) {
 	[ $xkeyTitle, $xkeyExtTitle, $dataTitle ] = $titles;
 	$extraTitle = null;
 }
-$extraDataKey = $selectedItem === 'RAISEDHR' ? 'mins_130' : null;
+$extraDataKeys = [ 'RAISEDHR' => 'mins_130', 'OXIDESAT' => 'mins_80' ];
+$extraDataKey  = $extraDataKeys[$selectedItem] ?? null;
 
 // Optional date-range narrowing (the same From/To bar every other Health page now uses) -
 // blank by default, so this still browses everything unless a range is actually picked.

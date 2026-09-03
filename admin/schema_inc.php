@@ -177,4 +177,12 @@ $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,
 // see PULSE above: titled xkey/xkey_ext, data offered as a collapsible block.
 $xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('EXERCISE','healthday','exercise','Exercise',-1,13,3,'','key-json-detail','[\"Type\",\"Duration (mins)\",\"Detail\"]')";
 
+// OXIDESAT — derived from the same tracker.oxygen_saturation sessions OXI reads,
+// but reducing each session's own binning detail (which OXI never opens) to
+// minutes spent below 90/85/80% SpO2 — the RAISEDHR-style "how long", not just
+// a session average. One row per sleep session (own start_date, like SLEEP/
+// EXERCISE/OXI), not per day. 'key-json-text', see WT above. See
+// ImportOxiDesat.php for the full reduction design.
+$xrefItems[] = "INSERT INTO `{$X}liberty_xref_item` (`item`,`content_type_guid`,`x_group`,`cross_ref_title`,`multiple`,`sort_order`,`role_id`,`cross_ref_href`,`template`,`data`) VALUES ('OXIDESAT','healthday','general','SpO2 Desaturation',-1,14,3,'','key-json-text','[\"mins_below_90\",\"mins_below_85\",\"mins_80\",\"low_value\",\"low_time\",\"sample_count\",\"coverage_mins\",\"session_mins\",\"spo2_avg\",\"spo2_min\",\"spo2_max\"]')";
+
 $gBitInstaller->registerSchemaDefault( HEALTH_PKG_NAME, array_merge( $xrefTypes, $xrefItems ) );

@@ -12,6 +12,7 @@
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_pulse.php">{tr}Import PULSE{/tr}</a></li>
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_oxi.php">{tr}Import OXI{/tr}</a></li>
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_oxi_samsung.php">{tr}Import OXI (Samsung){/tr}</a></li>
+			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_oxidesat.php">{tr}Import OXIDESAT{/tr}</a></li>
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_temp.php">{tr}Import TEMP{/tr}</a></li>
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_steps.php">{tr}Import STEPS{/tr}</a></li>
 			<li><a href="{$smarty.const.HEALTH_PKG_URL}import/load_steptrack.php">{tr}Import STEPTRACK{/tr}</a></li>

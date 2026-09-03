@@ -65,6 +65,7 @@ where noted. "Source" is which import pipeline populates it.
 | `STEPTRACK` | Samsung (`step_daily_trend`) | `general` | `key-json-detail` | one row/day; xkey=total steps, xkey_ext=peak-10-min, data=day track json |
 | `RAISEDHR` | derived, from `HEALTH_HR_RAW` (below) | `general` | `key-json-text` | one row/day; xkey/xkey_ext=mins≥90/100bpm, data=json split by exercise/background source + hr_min/hr_max |
 | `EXERCISE` | Samsung (`exercise`) | `exercise` | `key-json-detail` | one row per session; xkey=`healthExerciseTypeLabel()` text (Walk/Physio/Untagged — resolved at *import* time, the generic view template has no per-item value-lookup hook); xkey_ext=clock-span duration in minutes (`end_time-start_time`, deliberately not Samsung's own smoothed duration — see below); data=json `{type_code,duration_min,source_type,calorie,distance,mean_heart_rate,max_heart_rate,min_heart_rate,count,title}` |
+| `OXIDESAT` | derived, from `tracker.oxygen_saturation`'s own `binning` detail (same rows OXI reads) | `general` | `key-json-text` | one row per sleep *session* (own start_date, like SLEEP/EXERCISE); xkey/xkey_ext=mins spent below 90%/85% SpO2, data=json `{mins_80,low_value,low_time,sample_count,coverage_mins,session_mins,spo2_avg,spo2_min,spo2_max}` |
 
 **`EXERCISE.xkey_ext` is deliberately the raw, sometimes-wrong clock-span, not Samsung's own
 `duration` field.** Confirmed against real data: ~32% of sessions have a clock-span disagreeing
@@ -87,7 +88,7 @@ computed from it, not imported directly.
 One dedicated group per item that can genuinely carry more than one row on a given day (`WT`/`BP`/
 `OXI` — multiple real readings; `PULSE`/`RESP`/`STEMP`/`HRV`/`EXERCISE` — always multiple slots/
 sessions by design), plus one `general` group for the items that are always exactly one row per
-day (`TEMP`/`STEPS`/`ENERGY`/`SLEEP`/`STEPTRACK`/`RAISEDHR`). Getting this wrong (registering a
+day (`TEMP`/`STEPS`/`ENERGY`/`SLEEP`/`STEPTRACK`/`RAISEDHR`/`OXIDESAT`). Getting this wrong (registering a
 multi-row-per-day item under `general`) is a real, easy-to-hit mistake — happened to `EXERCISE`
 itself on first registration, only visible via `view_day.php` actually rendering wrong.
 

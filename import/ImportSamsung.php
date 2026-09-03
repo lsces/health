@@ -49,6 +49,7 @@
 require_once __DIR__.'/ImportBPSamsung.php';
 require_once __DIR__.'/ImportSleep.php';
 require_once __DIR__.'/ImportOxiSamsung.php';
+require_once __DIR__.'/ImportOxiDesat.php';
 require_once __DIR__.'/ImportEnergy.php';
 require_once __DIR__.'/ImportRespiratoryRate.php';
 require_once __DIR__.'/ImportSkinTemperature.php';
@@ -82,11 +83,10 @@ function samsungLastImportDateFile(): string {
 	return HEALTH_IMPORT_PATH.'samsung_last_import_date.txt';
 }
 
-/** type name (date-suffix stripped) => [importer function, needs a jsons dir]. Only CSV-plus-optional-jsons single-file importers go here - tracker.heart_rate/exercise (HR_RAW + RAISEDHR + healthImportExercise's own EXERCISE session rows) are handled separately, below, sharing one delta CSV per source rather than three independent ones. */
+/** type name (date-suffix stripped) => [importer function, needs a jsons dir]. Only CSV-plus-optional-jsons single-file importers go here - tracker.heart_rate/exercise (HR_RAW + RAISEDHR + healthImportExercise's own EXERCISE session rows) and tracker.oxygen_saturation (OXI + OXIDESAT - OXIDESAT alone needs this type's own jsons, OXI never did) are handled separately, below, sharing one delta CSV per source rather than two/three independent ones. */
 const HEALTH_SAMSUNG_TYPE_IMPORTERS = [
 	'com.samsung.shealth.blood_pressure'          => [ 'healthImportBPSamsung', false ],
 	'com.samsung.shealth.sleep'                   => [ 'healthImportSleep', false ],
-	'com.samsung.shealth.tracker.oxygen_saturation' => [ 'healthImportOxiSamsung', false ],
 	'com.samsung.shealth.vitality_score'          => [ 'healthImportEnergy', false ],
 	'com.samsung.health.respiratory_rate'         => [ 'healthImportRespiratoryRate', true ],
 	'com.samsung.health.skin_temperature'         => [ 'healthImportSkinTemperature', true ],
@@ -342,8 +342,14 @@ function healthImportSamsung( array $pFileHash ): array {
 		$fieldIdx = null;
 		$startIdx = null;
 		foreach( $header as $i => $col ) {
+			// '.binning' (not '.binning_data') is tracker.oxygen_saturation's own name for
+			// the same kind of detail-blob column - the only Samsung type that uses it,
+			// confirmed 2026-09-03 across the full export. Missed here, this type's blobs
+			// would silently never get archived, same bug class as the bare 'binning_data'/
+			// 'live_data' gap found+fixed 2026-08-31 for hrv/movement.
 			if( $col === 'binning_data' || str_ends_with( $col, '.binning_data' )
-				|| $col === 'live_data' || str_ends_with( $col, '.live_data' ) ) {
+				|| $col === 'live_data' || str_ends_with( $col, '.live_data' )
+				|| $col === 'binning' || str_ends_with( $col, '.binning' ) ) {
 				$fieldIdx = $i;
 			}
 			if( str_ends_with( $col, '.start_time' ) || $col === 'start_time' ) {
@@ -382,7 +388,8 @@ function healthImportSamsung( array $pFileHash ): array {
 
 	// Pass 2: dispatch each type's per-year delta to its real DB importer.
 	foreach( $deltasByTypeYear as $type => $byYear ) {
-		if( $type === 'com.samsung.shealth.tracker.heart_rate' || $type === 'com.samsung.shealth.exercise' ) {
+		if( $type === 'com.samsung.shealth.tracker.heart_rate' || $type === 'com.samsung.shealth.exercise'
+			|| $type === 'com.samsung.shealth.tracker.oxygen_saturation' ) {
 			continue; // handled together, below
 		}
 		if( !isset( HEALTH_SAMSUNG_TYPE_IMPORTERS[$type] ) ) {
@@ -398,6 +405,17 @@ function healthImportSamsung( array $pFileHash ): array {
 			unlink( $tmp );
 			$result['types']["$type ($year)"] = $r;
 		}
+	}
+
+	// OXI + OXIDESAT: same tracker.oxygen_saturation delta feeds both - OXI just reads the
+	// row's own average, OXIDESAT additionally needs this type's own binning jsons (which
+	// OXI never opens), same "one delta, >1 importer" shape as HR_RAW/EXERCISE above.
+	foreach( $deltasByTypeYear['com.samsung.shealth.tracker.oxygen_saturation'] ?? [] as $year => $delta ) {
+		$tmp = samsungWriteDeltaCsv( 'com.samsung.shealth.tracker.oxygen_saturation', $delta['header'], $delta['rows'] );
+		$jsonDir = HEALTH_IMPORT_PATH."history/$year/jsons/com.samsung.shealth.tracker.oxygen_saturation/";
+		$result['types']["OXI ($year)"] = healthImportOxiSamsung( $tmp );
+		$result['types']["OXIDESAT ($year)"] = healthImportOxiDesat( $tmp, $jsonDir );
+		unlink( $tmp );
 	}
 
 	// HR_RAW + RAISEDHR: need both sources together, per year.

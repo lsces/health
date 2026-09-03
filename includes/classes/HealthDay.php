@@ -339,6 +339,7 @@ class HealthDay extends LibertyContent {
 			'STEPTRACK' => [ 'Total Steps',       'Peak (10 min)',   'Day Track' ],
 			'RAISEDHR'  => [ 'Mins >=90bpm',      'Mins >=100bpm',   'Mins >=130bpm', 'Day Detail' ],
 			'EXERCISE'  => [ 'Type',              'Duration (mins)', 'Detail' ],
+			'OXIDESAT'  => [ 'Mins <90%',         'Mins <85%',       'Mins <80%', 'Session Detail' ],
 		];
 	}
 }
