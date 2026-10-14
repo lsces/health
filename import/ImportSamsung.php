@@ -31,9 +31,9 @@
  *   2. JSON blobs - copied into storage/health/history/<year>/jsons/<type>/
  *      <bucket>/, skipped if already present (cheap file_exists()).
  *   3. GPS traces specifically (exercise/*.location_data*.json) - same
- *      additive copy, but ALSO into /home/media1/Maps/_tracking/<year>/ (the
- *      mapper package's own storage convention - see bitweaver/mapper.md's
- *      2026-08-26 entry for why that path/name), for mapper's own future use.
+ *      additive copy, but ALSO into <tracking folder>/<year>/ (the Health
+ *      admin setting 'Tracking folder', see samsungTrackingPath()), for the
+ *      mapper package's own future use.
  *
  * The genuinely-new rows for each type are collected into a small delta CSV
  * (tempnam(), same header) and fed straight to that type's existing
@@ -116,7 +116,14 @@ const HEALTH_SAMSUNG_FOOD_TYPES = [
 /** GPS-trace blob filename fragments, exercise type only - see this file's own docblock. */
 const HEALTH_SAMSUNG_GPS_MARKERS = [ 'location_data.json', 'location_data_internal.json' ];
 
-const HEALTH_SAMSUNG_TRACKING_PATH = '/home/media1/Maps/_tracking/';
+/** Default for the 'health_tracking_path' admin setting - the folder GPS traces are archived into. */
+const HEALTH_SAMSUNG_TRACKING_DEFAULT = '/media3/Maps/_tracking';
+
+/** Folder GPS traces are archived into, with a trailing slash - the per-site Health setting, else the default. */
+function samsungTrackingPath(): string {
+	global $gBitSystem;
+	return rtrim( (string)$gBitSystem->getConfig( 'health_tracking_path', HEALTH_SAMSUNG_TRACKING_DEFAULT ) ?: HEALTH_SAMSUNG_TRACKING_DEFAULT, '/' ).'/';
+}
 
 /**
  * Strip a `.<digits>.csv` export-date suffix off a Samsung CSV filename,
@@ -193,7 +200,7 @@ function samsungArchiveCsvRows( string $pType, string $pYear, array $pHeader, ar
 /**
  * Copy one blob into storage/health/history/<year>/jsons/<type>/<bucket>/ if
  * not already present there, and - for the exercise type's GPS-trace blobs
- * specifically - also into HEALTH_SAMSUNG_TRACKING_PATH/<year>/ for the
+ * specifically - also into samsungTrackingPath()<year>/ for the
  * mapper package's own future use. Both are plain additive copies, never
  * overwritten if already present (Samsung's own export is byte-identical
  * for a blob that's appeared in a previous export - nothing to reconcile).
@@ -215,14 +222,17 @@ function samsungArchiveBlob( string $pType, string $pYear, string $pSrcPath, str
 	if( $pType === 'com.samsung.shealth.exercise' ) {
 		foreach( HEALTH_SAMSUNG_GPS_MARKERS as $marker ) {
 			if( str_ends_with( $pFilename, $marker ) ) {
-				$trackDest = HEALTH_SAMSUNG_TRACKING_PATH."$pYear/$bucket/";
-				if( is_dir( HEALTH_SAMSUNG_TRACKING_PATH ) || @mkdir( HEALTH_SAMSUNG_TRACKING_PATH, 0777, true ) ) {
+				$trackRoot = samsungTrackingPath();
+				$trackDest = $trackRoot."$pYear/$bucket/";
+				if( is_dir( $trackRoot ) || @mkdir( $trackRoot, 0777, true ) ) {
 					if( !is_dir( $trackDest ) ) {
 						@mkdir( $trackDest, 0777, true );
 					}
 					if( is_dir( $trackDest ) && !file_exists( $trackDest.$pFilename ) ) {
 						@copy( $pSrcPath, $trackDest.$pFilename );
 					}
+				} else {
+					error_log( "health: GPS tracking folder '$trackRoot' is missing and cannot be created - trace $pFilename not archived (see Health admin, Tracking folder)" );
 				}
 				break;
 			}
@@ -341,6 +351,7 @@ function healthImportSamsung( array $pFileHash ): array {
 		$hasJsons = is_dir( $jsonDir );
 		$fieldIdx = null;
 		$startIdx = null;
+		$gpsIdxs = []; // exercise only: the location_data columns, archived (and copied to the tracking folder) like the main blob
 		foreach( $header as $i => $col ) {
 			// '.binning' (not '.binning_data') is tracker.oxygen_saturation's own name for
 			// the same kind of detail-blob column - the only Samsung type that uses it,
@@ -355,6 +366,11 @@ function healthImportSamsung( array $pFileHash ): array {
 			if( str_ends_with( $col, '.start_time' ) || $col === 'start_time' ) {
 				$startIdx = $i;
 			}
+			if( $type === 'com.samsung.shealth.exercise'
+				&& ( $col === 'location_data' || str_ends_with( $col, '.location_data' )
+					|| $col === 'location_data_internal' || str_ends_with( $col, '.location_data_internal' ) ) ) {
+				$gpsIdxs[] = $i;
+			}
 		}
 		$isHrType = $type === 'com.samsung.shealth.tracker.heart_rate' || $type === 'com.samsung.shealth.exercise';
 
@@ -366,6 +382,19 @@ function healthImportSamsung( array $pFileHash ): array {
 					$filename = trim( $row[$fieldIdx] ?? '' );
 					if( $filename !== '' ) {
 						samsungArchiveBlob( $type, $year, $jsonDir.$filename[0].'/'.$filename, $filename );
+					}
+				}
+			}
+			if( $hasJsons && $gpsIdxs ) {
+				// Only ever reached the tracking folder via the one-off backfill before: the
+				// main-blob column above is live_data, never a location file, so
+				// samsungArchiveBlob()'s GPS copy never fired on a normal import.
+				foreach( $rows as $row ) {
+					foreach( $gpsIdxs as $gi ) {
+						$filename = trim( $row[$gi] ?? '' );
+						if( $filename !== '' ) {
+							samsungArchiveBlob( $type, $year, $jsonDir.$filename[0].'/'.$filename, $filename );
+						}
 					}
 				}
 			}
