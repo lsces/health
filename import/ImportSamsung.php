@@ -166,14 +166,39 @@ function samsungFindField( array $pRow, string $pSuffix ): ?string {
  * @param  string   $pYear
  * @param  string[] $pHeader
  * @param  array<int,string[]> $pRows  raw CSV rows (not yet dedup-checked)
+ * @param  string[] $pWarnings  appended to when the incoming header differs from the archive's (see above)
  * @return array<int,string[]>  the subset that were actually new
  */
-function samsungArchiveCsvRows( string $pType, string $pYear, array $pHeader, array $pRows ): array {
+function samsungArchiveCsvRows( string $pType, string $pYear, array $pHeader, array $pRows, array &$pWarnings = [] ): array {
 	$dir = HEALTH_IMPORT_PATH.'history/'.$pYear.'/';
 	if( !is_dir( $dir ) ) {
 		mkdir( $dir, 0777, true );
 	}
 	$file = $dir.$pType.'.csv';
+
+	// Samsung gives no notice when it adds/removes/reorders export columns. Rows under a
+	// different header can't share the original file (exact-line dedup would treat every
+	// re-exported row as new, and the old header would mislabel the new columns), so a changed
+	// layout gets its own file, named by a short hash of its header, and is reported.
+	if( file_exists( $file ) ) {
+		$fh = fopen( $file, 'r' );
+		$archived = $fh ? fgetcsv( $fh, 0, ',', '"', '' ) : false;
+		if( $fh ) fclose( $fh );
+		if( is_array( $archived ) && $archived !== $pHeader ) {
+			$added   = array_values( array_diff( $pHeader, $archived ) );
+			$removed = array_values( array_diff( $archived, $pHeader ) );
+			$file    = $dir.$pType.'.'.substr( md5( implode( ',', $pHeader ) ), 0, 6 ).'.csv';
+			$msg = "Export format changed for $pType ($pYear): ".count( $archived ).' -> '.count( $pHeader ).' columns'
+				.( $added ? '; added '.implode( ', ', $added ) : '' )
+				.( $removed ? '; removed '.implode( ', ', $removed ) : '' )
+				.( !$added && !$removed ? '; same columns, different order' : '' )
+				.'. Archiving to '.basename( $file ).'.';
+			if( !file_exists( $file ) ) { // first sight of this layout only, not on every later import
+				error_log( 'ImportSamsung: '.$msg );
+				$pWarnings[] = $msg;
+			}
+		}
+	}
 
 	$existingLines = file_exists( $file ) ? array_flip( file( $file, FILE_IGNORE_NEW_LINES ) ) : [];
 	$isNewFile = !file_exists( $file );
@@ -375,7 +400,7 @@ function healthImportSamsung( array $pFileHash ): array {
 		$isHrType = $type === 'com.samsung.shealth.tracker.heart_rate' || $type === 'com.samsung.shealth.exercise';
 
 		foreach( $rowsByYear as $year => $rows ) {
-			$newRows = samsungArchiveCsvRows( $type, $year, $header, $rows );
+			$newRows = samsungArchiveCsvRows( $type, $year, $header, $rows, $result['errors'] );
 
 			if( $hasJsons && $fieldIdx !== null ) {
 				foreach( $rows as $row ) {
