@@ -100,10 +100,14 @@ function healthStoreExercise( int $pContentId, int $pTimestamp, string $pType, f
  * Run the full exercise import.
  *
  * @param  string $pCsvFile
- * @return array{created:int,skipped:int,errors:string[]}
+ * @return array{created:int,skipped:int,gps_traces:int,walks_no_gps:int,errors:string[]}
+ *         `gps_traces` / `walks_no_gps` count only newly created Walk sessions, by whether the
+ *         export row carried a location_data file - a walk without one means the phone's
+ *         Samsung Health location permission is off (the watch still shows a trace, the
+ *         export gets none), so it is also written to the PHP error log.
  */
 function healthImportExercise( string $pCsvFile ): array {
-	$result = [ 'created' => 0, 'skipped' => 0, 'errors' => [] ];
+	$result = [ 'created' => 0, 'skipped' => 0, 'gps_traces' => 0, 'walks_no_gps' => 0, 'errors' => [] ];
 
 	if( !is_readable( $pCsvFile ) ) {
 		$result['errors'][] = "Can't read $pCsvFile";
@@ -165,6 +169,14 @@ function healthImportExercise( string $pCsvFile ): array {
 		$day  = HealthDay::findOrCreate( $date );
 		if( healthStoreExercise( $day->mContentId, $start->getTimestamp(), $type, $clockSpanMinutes, $detail ) ) {
 			$result['created']++;
+			if( $type === '1001' ) {
+				if( trim( $row[$P.'location_data'] ?? '' ) !== '' || trim( $row[$P.'location_data_internal'] ?? $row['location_data_internal'] ?? '' ) !== '' ) {
+					$result['gps_traces']++;
+				} else {
+					$result['walks_no_gps']++;
+					error_log( 'healthImportExercise: Walk starting '.$start->format( 'Y-m-d H:i' ).' UTC has no GPS trace in the export - check Samsung Health location permission on the phone' );
+				}
+			}
 		} else {
 			$result['skipped']++;
 		}
