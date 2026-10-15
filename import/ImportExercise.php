@@ -40,7 +40,8 @@
  * `xkey_ext`=clock-span duration in minutes,
  * `data`=json `{type_code, duration_min (Samsung's own value, converted
  * from ms), source_type, calorie, distance, mean_heart_rate,
- * max_heart_rate, min_heart_rate, count, title}`.
+ * max_heart_rate, min_heart_rate, count, title, shoe_id and
+ * total_volume when the export carries them}`.
  *
  * @package health
  */
@@ -163,6 +164,15 @@ function healthImportExercise( string $pCsvFile ): array {
 		];
 		if( !empty( $row['title'] ) ) {
 			$detail['title'] = $row['title'];
+		}
+		// Columns Samsung added to the export later (blank until the phone started filling
+		// them): kept only when present, so older rows' JSON is unchanged. shoe_id is the
+		// shoes chosen in Samsung Health - per-pair mileage can be summed from it.
+		foreach( [ 'shoe_id', 'total_volume' ] as $extra ) {
+			$val = trim( $row[$extra] ?? $row[$P.$extra] ?? '' );
+			if( $val !== '' ) {
+				$detail[$extra] = $val;
+			}
 		}
 
 		$date = $start->format( 'Y-m-d' );
