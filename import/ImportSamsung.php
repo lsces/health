@@ -183,6 +183,10 @@ function samsungArchiveCsvRows( string $pType, string $pYear, array $pHeader, ar
 	if( file_exists( $file ) ) {
 		$fh = fopen( $file, 'r' );
 		$archived = $fh ? fgetcsv( $fh, 0, ',', '"', '' ) : false;
+		// Files first written by split_by_year.py keep Samsung's "<table>,<version>,<columns>" preamble above the header.
+		if( $fh && is_array( $archived ) && count( $archived ) === 3 && ctype_digit( (string)$archived[1] ) && ctype_digit( (string)$archived[2] ) && str_starts_with( (string)$archived[0], 'com.samsung' ) ) {
+			$archived = fgetcsv( $fh, 0, ',', '"', '' );
+		}
 		if( $fh ) fclose( $fh );
 		if( is_array( $archived ) && $archived !== $pHeader ) {
 			$added   = array_values( array_diff( $pHeader, $archived ) );
