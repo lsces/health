@@ -90,9 +90,10 @@ queryable yet.
   not decomposed into the database.
 - The raw oxygen-saturation PPG waveform (`com.samsung.health.oxygen_saturation.raw`) — inspected
   directly and found to be unusable noise at the sample level, not a real signal.
-- Samsung's own phone/watch weight readings (`com.samsung.health.weight`) — weight currently only
-  imports HealthForYou's cuff/scale-sourced readings; a redundant Samsung-side source hasn't been
-  added.
+- Samsung's own phone/watch weight readings (`com.samsung.health.weight`) — deliberately not
+  imported. The scales report only to HealthForYou, which is the weight source; the Samsung entries
+  are a manual copy of that reading, and their `bmi` and `weight_range_*` columns are Samsung's own
+  calculations on it.
 
 Every raw CSV and JSON file from an uploaded export is archived (`storage/health/history/<year>/`)
 whether or not there's a database importer for it yet — nothing is discarded on upload, so any of
