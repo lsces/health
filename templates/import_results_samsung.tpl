@@ -12,9 +12,9 @@
 			{if $uploadForm}
 				<ul class="pagination">
 					<li class="bitnav-picker">
-						<form method="post" enctype="multipart/form-data" id="samsungUploadForm">
+						{form id="samsungUploadForm" enctype="multipart/form-data" action="{$smarty.server.REQUEST_URI|escape}"}
 							<input type="file" name="export_file" accept=".tar.gz,.tgz,.zip,application/gzip,application/zip" />
-						</form>
+						{/form}
 					</li>
 					<li class="bitnav-gap"><button type="submit" form="samsungUploadForm">{tr}Upload &amp; Run{/tr}</button></li>
 				</ul>

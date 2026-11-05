@@ -12,9 +12,9 @@
 			{if $uploadForm}
 				<ul class="pagination">
 					<li class="bitnav-picker">
-						<form method="post" enctype="multipart/form-data" id="hfyUploadForm">
+						{form id="hfyUploadForm" enctype="multipart/form-data" action="{$smarty.server.REQUEST_URI|escape}"}
 							<input type="file" name="export_file" accept=".csv,text/csv" />
-						</form>
+						{/form}
 					</li>
 					<li class="bitnav-gap"><button type="submit" form="hfyUploadForm">{tr}Upload &amp; Run{/tr}</button></li>
 				</ul>
