@@ -130,6 +130,7 @@ $gBitSmarty->assign( 'reportFrom', ( clone $reportToday )->modify( '-6 days' )->
 $gBitSmarty->assign( 'reportTo',   $reportToday->format( 'Y-m-d' ) );
 $gBitSmarty->assign( 'healthReports', [
 	[ 'title' => KernelTools::tra( 'Weekly Range Report' ), 'url' => HEALTH_PKG_URL.'report_range.php' ],
+	[ 'title' => KernelTools::tra( 'Monthly Report' ),      'url' => HEALTH_PKG_URL.'report_month.php' ],
 	[ 'title' => KernelTools::tra( 'BP Detail Report' ),    'url' => HEALTH_PKG_URL.'report_bp_detail.php' ],
 ] );
 
